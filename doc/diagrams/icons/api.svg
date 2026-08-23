@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Application programming interface</title>
+  <rect width="64" height="64" rx="16" fill="#EEF2FF"/>
+  <rect x="15" y="15" width="34" height="12" rx="3" fill="#4F46E5"/>
+  <rect x="15" y="30" width="34" height="12" rx="3" fill="#4F46E5"/>
+  <rect x="15" y="45" width="34" height="5" rx="2.5" fill="#4F46E5"/>
+  <circle cx="22" cy="21" r="2" fill="#fff"/>
+  <circle cx="22" cy="36" r="2" fill="#fff"/>
+  <path d="M29 21h13M29 36h13" stroke="#fff" stroke-linecap="round" stroke-width="2.5"/>
+</svg>

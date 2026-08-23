@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Human-readable functional specification for the SharpAgent controlled AI coding-agent MVP.">
+  <title>SharpAgent — Functional Specification</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --body: #334155;
+      --muted: #64748b;
+      --line: #dbe4f0;
+      --paper: #ffffff;
+      --canvas: #f4f7fb;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+      --violet: #7c3aed;
+      --violet-soft: #f5f3ff;
+      --green: #15803d;
+      --green-soft: #f0fdf4;
+      --amber: #b45309;
+      --amber-soft: #fffbeb;
+      --red: #b91c1c;
+      --red-soft: #fef2f2;
+      --cyan: #0f7490;
+      --cyan-soft: #ecfeff;
+      --shadow: 0 18px 48px rgba(15, 23, 42, .09);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--body);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.58;
+    }
+    a { color: #1d4ed8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .page { max-width: 1240px; margin: 0 auto; padding: 30px 22px 64px; }
+    .shell { overflow: hidden; background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 58px 64px 50px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 88% 18%, rgba(96, 165, 250, .50), transparent 28%),
+        radial-gradient(circle at 74% 100%, rgba(196, 181, 253, .35), transparent 33%),
+        linear-gradient(135deg, #0f172a 0%, #1e3a8a 58%, #312e81 100%);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 460px;
+      height: 460px;
+      right: -150px;
+      top: -245px;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 50%;
+      box-shadow: 0 0 0 56px rgba(255,255,255,.06), 0 0 0 112px rgba(255,255,255,.035);
+    }
+    .eyebrow, .section-kicker {
+      margin: 0 0 12px;
+      color: #bfdbfe;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { color: var(--ink); line-height: 1.15; }
+    h1 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: #fff;
+      font-size: clamp(34px, 5.2vw, 58px);
+      letter-spacing: -.045em;
+    }
+    .lede {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 18px 0 0;
+      color: #dbeafe;
+      font-size: 19px;
+      line-height: 1.55;
+    }
+    .meta {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px 25px;
+      margin-top: 30px;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+    .meta strong { color: #fff; }
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 18px;
+      padding: 15px 64px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .nav a { color: var(--muted); }
+    section { padding: 46px 64px; border-bottom: 1px solid var(--line); }
+    section:last-of-type { border-bottom: 0; }
+    .section-kicker { color: var(--blue); }
+    h2 { margin: 0; font-size: 29px; letter-spacing: -.032em; }
+    h3 { margin: 0 0 10px; font-size: 18px; letter-spacing: -.02em; }
+    p { margin: 12px 0; }
+    .intro { max-width: 850px; color: #475569; font-size: 17px; }
+    .grid-2, .grid-3, .grid-4 { display: grid; gap: 18px; margin-top: 26px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .card p:last-child { margin-bottom: 0; }
+    .card-blue { border-color: #bfdbfe; background: var(--blue-soft); }
+    .card-violet { border-color: #ddd6fe; background: var(--violet-soft); }
+    .card-green { border-color: #bbf7d0; background: var(--green-soft); }
+    .card-amber { border-color: #fde68a; background: var(--amber-soft); }
+    .card-cyan { border-color: #a5f3fc; background: var(--cyan-soft); }
+    .card-red { border-color: #fecaca; background: var(--red-soft); }
+    .icon {
+      display: grid;
+      width: 39px;
+      height: 39px;
+      place-items: center;
+      margin-bottom: 14px;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, .08);
+      color: var(--blue);
+      font-weight: 850;
+      font-size: 17px;
+    }
+    .callout {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 14px;
+      margin-top: 26px;
+      padding: 19px 20px;
+      border: 1px solid #bfdbfe;
+      border-radius: 15px;
+      background: #f8fbff;
+    }
+    .callout .badge-icon {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 12px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 900;
+    }
+    .callout p { margin: 3px 0 0; }
+    .callout-warning { border-color: #fde68a; background: #fffdf5; }
+    .callout-warning .badge-icon { background: #fef3c7; color: var(--amber); }
+    .callout-danger { border-color: #fecaca; background: #fff8f8; }
+    .callout-danger .badge-icon { background: #fee2e2; color: var(--red); }
+    .journey {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 30px;
+    }
+    .journey::before {
+      position: absolute;
+      top: 29px;
+      right: 7%;
+      left: 7%;
+      z-index: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #93c5fd, #c4b5fd, #86efac, #fdba74, #67e8f9);
+      content: "";
+    }
+    .journey-step { position: relative; z-index: 1; text-align: center; }
+    .step-number {
+      display: grid;
+      width: 58px;
+      height: 58px;
+      place-items: center;
+      margin: 0 auto 12px;
+      border: 5px solid #fff;
+      border-radius: 50%;
+      background: #e8f0ff;
+      box-shadow: 0 5px 15px rgba(15,23,42,.11);
+      color: #1d4ed8;
+      font-size: 17px;
+      font-weight: 850;
+    }
+    .journey-step:nth-child(2) .step-number { background: #ede9fe; color: #6d28d9; }
+    .journey-step:nth-child(3) .step-number { background: #f0fdf4; color: #15803d; }
+    .journey-step:nth-child(4) .step-number { background: #fff7ed; color: #c2410c; }
+    .journey-step:nth-child(5) .step-number { background: #fff7ed; color: #b45309; }
+    .journey-step:nth-child(6) .step-number { background: #ecfeff; color: #0e7490; }
+    .journey-step strong { display: block; color: var(--ink); font-size: 13px; }
+    .journey-step span { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.38; }
+    .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 26px; }
+    .mode {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .mode-head { padding: 16px 20px; font-weight: 800; color: var(--ink); }
+    .mode-plan .mode-head { background: var(--blue-soft); }
+    .mode-execute .mode-head { background: var(--violet-soft); }
+    .mode-body { padding: 18px 20px 20px; }
+    .check-list, .plain-list { margin: 12px 0 0; padding: 0; list-style: none; }
+    .check-list li, .plain-list li {
+      position: relative;
+      padding: 7px 0 7px 25px;
+      border-bottom: 1px solid #edf2f7;
+    }
+    .check-list li:last-child, .plain-list li:last-child { border-bottom: 0; }
+    .check-list li::before {
+      position: absolute;
+      top: 7px;
+      left: 1px;
+      content: "✓";
+      color: var(--green);
+      font-weight: 900;
+    }
+    .plain-list li::before {
+      position: absolute;
+      top: 9px;
+      left: 4px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #93c5fd;
+      content: "";
+    }
+    .table-wrap { overflow-x: auto; margin-top: 26px; border: 1px solid var(--line); border-radius: 15px; }
+    table { width: 100%; border-collapse: collapse; min-width: 680px; }
+    th, td { padding: 15px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+    th { background: #f8fafc; color: #475569; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    td strong { color: var(--ink); }
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #e8f0ff;
+      color: #1d4ed8;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .pill-green { background: #dcfce7; color: #166534; }
+    .pill-amber { background: #fef3c7; color: #92400e; }
+    .pill-red { background: #fee2e2; color: #991b1b; }
+    .state-flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+      margin-top: 26px;
+    }
+    .state {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .state.active { border-color: #c4b5fd; background: #f5f3ff; color: #6d28d9; }
+    .state.complete { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+    .state.stop { border-color: #fecaca; background: #fff1f2; color: #b91c1c; }
+    .arrow { color: #94a3b8; font-size: 19px; line-height: 1; }
+    .route-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+    .route {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+    }
+    .route code, code {
+      color: #1e40af;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: .91em;
+    }
+    .route p { margin: 2px 0 0; font-size: 13px; }
+    .route-symbol {
+      display: grid;
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 8px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .requirement-group { margin-top: 28px; }
+    .requirement-group h3 { padding-bottom: 9px; border-bottom: 2px solid #dbeafe; }
+    .requirement-group p { color: #475569; }
+    .mini-table { margin-top: 13px; }
+    .footer {
+      padding: 28px 64px 34px;
+      border-top: 1px solid var(--line);
+      background: #fbfdff;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer p { margin: 0; }
+    @media (max-width: 900px) {
+      .hero, section, .footer { padding-right: 34px; padding-left: 34px; }
+      .nav { padding-right: 34px; padding-left: 34px; }
+      .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .journey { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 25px; }
+      .journey::before { display: none; }
+    }
+    @media (max-width: 620px) {
+      .page { padding: 0; }
+      .shell { border: 0; box-shadow: none; }
+      .hero, section, .footer { padding: 32px 22px; }
+      .nav { padding: 13px 22px; }
+      .grid-2, .grid-3, .grid-4, .mode-grid, .route-grid { grid-template-columns: 1fr; }
+      .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      h2 { font-size: 26px; }
+      .lede { font-size: 17px; }
+      .callout { grid-template-columns: 33px 1fr; padding: 16px; }
+      .callout .badge-icon { width: 33px; height: 33px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .page { max-width: none; padding: 0; }
+      .shell { border: 0; box-shadow: none; }
+      .nav { display: none; }
+      section { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">Controlled MVP · functional specification</p>
+        <h1>SharpAgent</h1>
+        <p class="lede">A practical, guarded AI coding-agent experience for trusted developers: plan work, act inside an isolated workspace, and keep people in control of consequential changes.</p>
+        <div class="meta">
+          <span><strong>Version:</strong> 1.0</span>
+          <span><strong>Date:</strong> 23 August 2026</span>
+          <span><strong>Scope:</strong> local or trusted internal MVP</span>
+          <span><strong>Companion:</strong> <a href="functional-spec.md" style="color:#fff;text-decoration:underline">implementation specification</a></span>
+        </div>
+      </header>
+
+      <nav class="nav" aria-label="Specification sections">
+        <a href="#outcome">Outcome</a>
+        <a href="#journey">Journey</a>
+        <a href="#capabilities">Capabilities</a>
+        <a href="#control">Control model</a>
+        <a href="#experience">Product experience</a>
+        <a href="#operations">Operations</a>
+        <a href="#acceptance">MVP acceptance</a>
+      </nav>
+
+      <section id="outcome">
+        <p class="section-kicker">The product in one view</p>
+        <h2>Turn a development task into a visible, controlled workflow</h2>
+        <p class="intro">SharpAgent is not an unattended coding bot. It is a developer-facing workspace where the agent can understand a repository, prepare a plan, propose a change, run validation, and explain the outcome—while the application controls file access, shell execution, model choice, and approval.</p>
+
+        <div class="grid-3">
+          <article class="card card-blue">
+            <div class="icon">01</div>
+            <h3>What a developer gets</h3>
+            <p>A single place to create coding tasks, see live progress, inspect a todo plan, review diffs, and continue a session later.</p>
+          </article>
+          <article class="card card-violet">
+            <div class="icon">02</div>
+            <h3>What the agent does</h3>
+            <p>Uses Microsoft Agent Framework to plan, manage task context, call approved tools, and stream useful status—not hidden model reasoning.</p>
+          </article>
+          <article class="card card-green">
+            <div class="icon">03</div>
+            <h3>What keeps it safe</h3>
+            <p>Every potentially consequential tool action passes through application policy, a bounded workspace, and an approval decision where required.</p>
+          </article>
+        </div>
+
+        <div class="callout">
+          <div class="badge-icon">!</div>
+          <div>
+            <strong>MVP deployment boundary</strong>
+            <p>Authentication is deliberately not included. This version is for a local machine or tightly trusted internal use only. A shared or Internet-facing deployment is blocked until authentication and authorization exist.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="journey">
+        <p class="section-kicker">Developer journey</p>
+        <h2>Six clear stages from task to review</h2>
+        <p class="intro">The product keeps the developer aware of where the agent is and lets them intervene at the moments that matter.</p>
+
+        <div class="journey" aria-label="Six-stage SharpAgent journey">
+          <div class="journey-step"><div class="step-number">1</div><strong>Choose</strong><span>Select repository, model, and working mode.</span></div>
+          <div class="journey-step"><div class="step-number">2</div><strong>Plan</strong><span>Agent creates visible todos and reads safe context.</span></div>
+          <div class="journey-step"><div class="step-number">3</div><strong>Check</strong><span>Policy evaluates every proposed tool action.</span></div>
+          <div class="journey-step"><div class="step-number">4</div><strong>Approve</strong><span>Developer accepts or denies sensitive work.</span></div>
+          <div class="journey-step"><div class="step-number">5</div><strong>Execute</strong><span>Bounded workspace applies change or runs validation.</span></div>
+          <div class="journey-step"><div class="step-number">6</div><strong>Review</strong><span>Developer sees result, diff, tests, and next steps.</span></div>
+        </div>
+
+        <div class="mode-grid">
+          <article class="mode mode-plan">
+            <div class="mode-head">Plan mode — investigate before acting</div>
+            <div class="mode-body">
+              <p>Use this mode for repository understanding, root-cause analysis, task decomposition, and a proposed path forward.</p>
+              <ul class="check-list">
+                <li>Can read, list, search, and inspect repository state inside the selected workspace.</li>
+                <li>Creates and updates a visible todo plan.</li>
+                <li>Never patches files or runs a side-effecting shell command.</li>
+              </ul>
+            </div>
+          </article>
+          <article class="mode mode-execute">
+            <div class="mode-head">Execute mode — act only inside guardrails</div>
+            <div class="mode-body">
+              <p>Use this mode for a small, reviewable change that can be validated inside the controlled workspace.</p>
+              <ul class="check-list">
+                <li>Begins with a plan and tracks progress through todos.</li>
+                <li>Requests approval before default-sensitive actions such as patches and test commands.</li>
+                <li>Finishes with a change review, validation result, warnings, and usage summary.</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="capabilities">
+        <p class="section-kicker">Functional scope</p>
+        <h2>Capabilities that make the MVP useful</h2>
+        <p class="intro">The functions below are the committed behaviour for the first usable product. They are intentionally focused on an auditable developer workflow rather than broad, unattended autonomy.</p>
+
+        <div class="grid-3">
+          <article class="card card-blue">
+            <div class="icon">A</div>
+            <h3>Tasks and sessions</h3>
+            <ul class="plain-list">
+              <li>Create a task with a workspace, model profile, and Plan or Execute mode.</li>
+              <li>List recent sessions and see state, workspace, model, and outcome.</li>
+              <li>Cancel, archive, and resume sessions without losing history.</li>
+            </ul>
+          </article>
+          <article class="card card-violet">
+            <div class="icon">B</div>
+            <h3>Planning and context</h3>
+            <ul class="plain-list">
+              <li>Visible todos for multi-step work.</li>
+              <li>Compaction of long-running context while preserving key decisions.</li>
+              <li>Clear activity summaries rather than private model reasoning.</li>
+            </ul>
+          </article>
+          <article class="card card-amber">
+            <div class="icon">C</div>
+            <h3>Changes and validation</h3>
+            <ul class="plain-list">
+              <li>Proposed patches grouped as change sets.</li>
+              <li>File-by-file diff review.</li>
+              <li>Controlled test and shell execution with output and exit status.</li>
+            </ul>
+          </article>
+          <article class="card card-green">
+            <div class="icon">D</div>
+            <h3>Safety and approval</h3>
+            <ul class="plain-list">
+              <li>Policy decision before every tool action.</li>
+              <li>Single-use, expiring approvals for sensitive work.</li>
+              <li>Hard workspace boundary and isolated execution profile.</li>
+            </ul>
+          </article>
+          <article class="card card-cyan">
+            <div class="icon">E</div>
+            <h3>Model choice</h3>
+            <ul class="plain-list">
+              <li>Server-side adapters for OpenCode Go, DeepSeek, and OpenRouter.</li>
+              <li>Small approved catalog instead of unrestricted model pickers.</li>
+              <li>Profile validation for streaming and tool calling.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <div class="icon">F</div>
+            <h3>Results and learning</h3>
+            <ul class="plain-list">
+              <li>Final summary, completed todos, changed files, and next steps.</li>
+              <li>Audit timeline across task, tools, policy, approvals, and outcome.</li>
+              <li>Usage, latency, tool count, and estimated-cost visibility.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="control">
+        <p class="section-kicker">Control model</p>
+        <h2>Autonomous within limits, never unattended</h2>
+        <p class="intro">SharpAgent can take several steps in sequence, but it cannot bypass the product boundary. The browser never holds provider keys or has direct shell access; the backend owns the session and evaluates policy before an action reaches files or commands.</p>
+
+        <div class="state-flow" aria-label="Session lifecycle">
+          <span class="state">Draft</span><span class="arrow">→</span>
+          <span class="state active">Planning</span><span class="arrow">→</span>
+          <span class="state active">Executing</span><span class="arrow">→</span>
+          <span class="state active">Awaiting approval</span><span class="arrow">→</span>
+          <span class="state active">Reviewing</span><span class="arrow">→</span>
+          <span class="state complete">Completed</span>
+          <span class="arrow">or</span><span class="state stop">Cancelled / failed / interrupted</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Action</th><th>Default decision</th><th>Why it is treated this way</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Read, list, search inside workspace</strong></td><td><span class="pill pill-green">Allow</span></td><td>Useful repository understanding with bounded, resolved paths.</td></tr>
+              <tr><td><strong>Apply a patch or write a file</strong></td><td><span class="pill pill-amber">Require approval</span></td><td>Changes the developer's working code and must be reviewed.</td></tr>
+              <tr><td><strong>Run a test or shell command</strong></td><td><span class="pill pill-amber">Require approval</span></td><td>May consume resources or have unexpected side effects.</td></tr>
+              <tr><td><strong>Delete, move, install, publish, commit, or push</strong></td><td><span class="pill pill-red">Deny in MVP</span></td><td>Outside the initial safe operational envelope.</td></tr>
+              <tr><td><strong>Access outside workspace or tool network access</strong></td><td><span class="pill pill-red">Deny</span></td><td>Protects local data and keeps execution scope explicit.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2">
+          <article class="card card-green">
+            <h3>What an approval shows</h3>
+            <p>An approval card names the proposed action, affected files or working directory, safely truncated command or patch preview, agent reason, impact badge, and expiry time.</p>
+          </article>
+          <article class="card card-red">
+            <h3>What an approval never does</h3>
+            <p>Approval is not a blanket permission. It is single-use, linked to one specific action fingerprint, and invalid if the command or patch changes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="experience">
+        <p class="section-kicker">Product experience</p>
+        <h2>A small set of pages covers the whole MVP workflow</h2>
+        <p class="intro">The interface uses React, React Router, shadcn/ui, and Tailwind CSS 4. It is desktop-first but must remain usable on a tablet, particularly for status, approval, and review actions.</p>
+
+        <div class="route-grid">
+          <div class="route"><div class="route-symbol">01</div><div><code>/</code><p>Dashboard with recent sessions, status summary, basic local metrics, and entry to a new task.</p></div></div>
+          <div class="route"><div class="route-symbol">02</div><div><code>/sessions/new</code><p>Task form: workspace, task, Plan/Execute mode, approved model, and optional stricter limits.</p></div></div>
+          <div class="route"><div class="route-symbol">03</div><div><code>/sessions/:sessionId</code><p>Live session: activity timeline, todo plan, approvals, changes, validation output, review, and usage.</p></div></div>
+          <div class="route"><div class="route-symbol">04</div><div><code>/sessions/:sessionId/changes</code><p>Focused diff review for all changed files.</p></div></div>
+          <div class="route"><div class="route-symbol">05</div><div><code>/sessions/archive</code><p>Archived sessions retained for audit and later review.</p></div></div>
+          <div class="route"><div class="route-symbol">06</div><div><code>/settings/workspaces</code><p>Registered workspace paths and availability status.</p></div></div>
+          <div class="route"><div class="route-symbol">07</div><div><code>/settings/models</code><p>Configured provider profiles, capability validation, and readiness.</p></div></div>
+          <div class="route"><div class="route-symbol">08</div><div><code>/settings/policy</code><p>Run limits, approval expiry, and workspace tool rules.</p></div></div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="badge-icon">i</div>
+          <div>
+            <strong>Visible status without private reasoning</strong>
+            <p>The user sees what the agent is trying to do, the tool it proposes, its result, and any limit or error. The application does not surface hidden model chain-of-thought.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="operations">
+        <p class="section-kicker">Technology and operational behaviour</p>
+        <h2>One application boundary owns the risk</h2>
+        <p class="intro">The front end does not connect directly to a model provider or shell. The .NET service owns the persistent session, provider adapter, policy decision, workspace execution, and real-time event stream.</p>
+
+        <div class="grid-3">
+          <article class="card">
+            <h3>Microsoft Agent Framework</h3>
+            <p>Provides the agent runtime for planning, todo handling, context/session management, streaming, and tool orchestration. SharpAgent wraps it in an application runtime boundary so framework evolution does not leak through the product.</p>
+          </article>
+          <article class="card">
+            <h3>Provider-neutral model layer</h3>
+            <p>OpenCode Go, DeepSeek, and OpenRouter appear to the rest of the system through one canonical contract. Only tested model profiles can run tools.</p>
+          </article>
+          <article class="card">
+            <h3>SQLite and audit history</h3>
+            <p>SQLite stores sessions, plans, approvals, tool records, changes, usage, and configuration metadata. Provider secrets stay in server-side configuration, not the database.</p>
+          </article>
+        </div>
+
+        <div class="requirement-group">
+          <h3>What is recorded for every run</h3>
+          <div class="table-wrap mini-table">
+            <table>
+              <thead><tr><th>Record</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Task and session state</strong></td><td>Allows page refresh, history, cancellation, and safe resume.</td></tr>
+                <tr><td><strong>Todos and agent summaries</strong></td><td>Makes the agent's plan and progress understandable.</td></tr>
+                <tr><td><strong>Tool, policy, and approval events</strong></td><td>Provides a chronological accountability trail.</td></tr>
+                <tr><td><strong>Change sets and diffs</strong></td><td>Lets developer review exactly what changed.</td></tr>
+                <tr><td><strong>Usage and reliability signals</strong></td><td>Shows model/provider, latency, token usage where available, estimated cost, failures, and compaction count.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="badge-icon">×</div>
+          <div>
+            <strong>Important safety principle</strong>
+            <p>Allow and deny rules are useful but not a sandbox on their own. File and shell actions must be contained by a resolved workspace boundary and an isolated worktree or container profile. Container networking is disabled by default.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="acceptance">
+        <p class="section-kicker">MVP acceptance</p>
+        <h2>Evidence required before a controlled pilot</h2>
+        <p class="intro">The MVP is complete only when it proves real developer value and the defined safeguards work in practice. The following scenarios form the core acceptance set.</p>
+
+        <div class="grid-2">
+          <article class="card card-blue"><h3>1. Investigate safely</h3><p>In Plan mode, the agent can read/search a valid repository, create a plan, and return an investigation summary without changing files or running a side-effecting command.</p></article>
+          <article class="card card-violet"><h3>2. Change with approval</h3><p>In Execute mode, a proposed patch pauses for approval; a separately proposed test command also needs approval; review shows diff and validation result.</p></article>
+          <article class="card card-green"><h3>3. Deny and recover</h3><p>A denied or policy-blocked action never runs, is clearly explained, and does not trigger an infinite retry loop.</p></article>
+          <article class="card card-amber"><h3>4. Gate model capability</h3><p>An unvalidated or incapable provider profile cannot run tool-enabled execution. A passed smoke test makes it eligible according to its capability profile.</p></article>
+          <article class="card card-cyan"><h3>5. Resume with history</h3><p>An interrupted session keeps its task, todos, approvals, tool results, diffs, and failure reason; resuming creates a new run instead of overwriting history.</p></article>
+          <article class="card"><h3>6. Protect boundary and secrets</h3><p>Path traversal and escaping symbolic links are denied. No provider credential or raw server secret appears in a page, API result, or browser storage.</p></article>
+        </div>
+
+        <div class="callout">
+          <div class="badge-icon">✓</div>
+          <div>
+            <strong>Definition of done</strong>
+            <p>All must-have requirements and acceptance scenarios pass; each requested provider has a server-side adapter and validation path; Plan mode is read-only; sensitive Execute actions require approval; history survives refresh/resume; and contract, policy, provider, database, and end-to-end tests run in CI.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="delivery">
+        <p class="section-kicker">Practical delivery sequence</p>
+        <h2>Prove the difficult parts before widening the scope</h2>
+        <div class="grid-3">
+          <article class="card card-blue">
+            <div class="icon">0</div>
+            <h3>Technical validation</h3>
+            <p>Prove selected providers can stream and request structured tools. Add one workspace, Plan mode, read/search tools, SQLite sessions, and SSE events.</p>
+          </article>
+          <article class="card card-violet">
+            <div class="icon">1</div>
+            <h3>Controlled MVP</h3>
+            <p>Deliver full developer journey: task, plan, approval, patch, test, diff, review, cancellation, resume, and basic operator settings.</p>
+          </article>
+          <article class="card card-green">
+            <div class="icon">2</div>
+            <h3>Pilot hardening</h3>
+            <p>Improve isolation, recovery, reporting, retention, and explicit provider routing only after the core workflow is proven useful and safe.</p>
+          </article>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p><strong>SharpAgent Functional Specification v1.0.</strong> This human-readable view summarizes the agreed MVP behaviour. For API contracts, data entities, requirement IDs, and implementation boundaries, use the <a href="functional-spec.md">Markdown implementation specification</a>. The feasibility decision and architecture rationale are in the <a href="SharpAgent-Feasibility-Report.html">feasibility report</a>.</p>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

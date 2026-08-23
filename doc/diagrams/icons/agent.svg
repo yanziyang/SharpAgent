@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">AI agent</title>
+  <rect width="64" height="64" rx="16" fill="#EDE9FE"/>
+  <path d="M20 34a12 12 0 1 1 24 0v8a8 8 0 0 1-8 8H28a8 8 0 0 1-8-8z" fill="#7C3AED"/>
+  <path d="M25 24v-4M39 24v-4M32 50v-5" stroke="#7C3AED" stroke-linecap="round" stroke-width="3"/>
+  <circle cx="25" cy="20" r="3" fill="#A78BFA"/>
+  <circle cx="39" cy="20" r="3" fill="#A78BFA"/>
+  <circle cx="32" cy="45" r="3" fill="#A78BFA"/>
+  <circle cx="27.5" cy="35" r="2.5" fill="#fff"/>
+  <circle cx="36.5" cy="35" r="2.5" fill="#fff"/>
+  <path d="M27 42c3 2 7 2 10 0" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2.5"/>
+</svg>

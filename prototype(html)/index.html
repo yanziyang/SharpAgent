@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SharpAgent web application prototype">
+  <title>SharpAgent — AI Coding Workspace</title>
+  <style>
+    :root {
+      --bg: #f7f7f6;
+      --surface: #ffffff;
+      --surface-muted: #f4f4f2;
+      --surface-soft: #eeefed;
+      --surface-selected: #e9ebf4;
+      --text: #202124;
+      --muted: #62656d;
+      --subtle: #92949a;
+      --border: #e0e1de;
+      --border-strong: #cdcfcb;
+      --primary: #4f46e5;
+      --primary-strong: #4338ca;
+      --primary-soft: #eeedff;
+      --success: #177b48;
+      --success-soft: #e7f7ed;
+      --warning: #a45a00;
+      --warning-soft: #fff3df;
+      --danger: #b42318;
+      --danger-soft: #fff0ee;
+      --info: #2563a8;
+      --info-soft: #edf6ff;
+      --code: #2f3444;
+      --shadow: 0 14px 34px rgba(25, 28, 33, .10);
+      --shadow-sm: 0 1px 2px rgba(25, 28, 33, .06);
+      --overlay: rgba(22, 24, 28, .44);
+      --focus: rgba(79, 70, 229, .32);
+    }
+
+    body[data-theme="midnight"] {
+      color-scheme: dark;
+      --bg: #111318;
+      --surface: #191c22;
+      --surface-muted: #17191f;
+      --surface-soft: #282c34;
+      --surface-selected: #2a2e3e;
+      --text: #f2f4f8;
+      --muted: #b7bdca;
+      --subtle: #828a9a;
+      --border: #30343d;
+      --border-strong: #444a55;
+      --primary: #9a8dff;
+      --primary-strong: #b8aeff;
+      --primary-soft: #2f2b4e;
+      --success: #6cdb9d;
+      --success-soft: #173c2a;
+      --warning: #f5b666;
+      --warning-soft: #493518;
+      --danger: #ff9690;
+      --danger-soft: #4a2326;
+      --info: #8bceff;
+      --info-soft: #17374f;
+      --code: #e5e8ed;
+      --shadow: 0 20px 46px rgba(0, 0, 0, .36);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .28);
+      --overlay: rgba(0, 0, 0, .65);
+      --focus: rgba(184, 174, 255, .37);
+    }
+
+    body[data-theme="ocean"] {
+      --bg: #f2f8fa;
+      --surface: #ffffff;
+      --surface-muted: #f6fbfc;
+      --surface-soft: #e9f4f7;
+      --surface-selected: #e1f0f4;
+      --text: #16333d;
+      --muted: #58717a;
+      --subtle: #82979e;
+      --border: #d4e4e8;
+      --border-strong: #bcd3d9;
+      --primary: #087b9e;
+      --primary-strong: #056c8a;
+      --primary-soft: #e0f4f9;
+      --success: #177b57;
+      --success-soft: #e4f6ec;
+      --warning: #a65e04;
+      --warning-soft: #fff2df;
+      --danger: #b33f38;
+      --danger-soft: #feefed;
+      --info: #0d6d99;
+      --info-soft: #e2f4fc;
+      --code: #19414d;
+      --shadow: 0 14px 34px rgba(12, 64, 80, .10);
+      --focus: rgba(8, 123, 158, .28);
+    }
+
+    body[data-theme="forest"] {
+      --bg: #f5f7f2;
+      --surface: #ffffff;
+      --surface-muted: #f8faf6;
+      --surface-soft: #edf3e9;
+      --surface-selected: #e5eee0;
+      --text: #203126;
+      --muted: #607165;
+      --subtle: #8a988e;
+      --border: #d9e4d5;
+      --border-strong: #c6d5bf;
+      --primary: #31744e;
+      --primary-strong: #275f40;
+      --primary-soft: #e4f2e8;
+      --success: #237349;
+      --success-soft: #e5f5e9;
+      --warning: #9e6308;
+      --warning-soft: #fbf1dd;
+      --danger: #b1443e;
+      --danger-soft: #fff0ee;
+      --info: #2b708d;
+      --info-soft: #e5f2f6;
+      --code: #284235;
+      --shadow: 0 14px 34px rgba(34, 67, 42, .10);
+      --focus: rgba(49, 116, 78, .28);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      background: var(--bg);
+      font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; color: inherit; cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    [hidden] { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .icon { display: block; width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .icon.sm { width: 15px; height: 15px; }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 274px minmax(0, 1fr);
+      grid-template-rows: 60px minmax(0, 1fr);
+      width: 100%;
+      min-height: 100dvh;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      transition: grid-template-columns .18s ease;
+    }
+    .app-shell.sidebar-collapsed { grid-template-columns: 76px minmax(0, 1fr); }
+
+    .web-header {
+      grid-column: 1 / -1;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter: blur(13px);
+    }
+    .header-brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 9px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), #8178ee);
+      box-shadow: 0 5px 13px color-mix(in srgb, var(--primary) 28%, transparent);
+      flex: 0 0 auto;
+    }
+    body[data-theme="forest"] .brand-mark { background: linear-gradient(135deg, #31744e, #6ba165); }
+    body[data-theme="ocean"] .brand-mark { background: linear-gradient(135deg, #087b9e, #24adbe); }
+    body[data-theme="midnight"] .brand-mark { background: linear-gradient(135deg, #7668df, #b58bff); }
+    .brand-name { color: var(--text); font-size: 15px; font-weight: 780; letter-spacing: -.02em; }
+    .brand-subtitle { margin-top: 1px; color: var(--subtle); font-size: 10px; }
+    .header-context {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      padding-left: 14px;
+      border-left: 1px solid var(--border);
+      color: var(--subtle);
+      font-size: 12px;
+    }
+    .header-context strong { overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+    .header-spacer { flex: 1; }
+    .header-actions { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 33px;
+      height: 33px;
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+      transition: background .16s ease, color .16s ease, transform .16s ease;
+    }
+    .icon-button:hover { color: var(--text); background: var(--surface-soft); }
+    .icon-button:active { transform: scale(.96); }
+    .header-status { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 32px;
+      padding: 7px 10px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      color: var(--text);
+      background: var(--surface-soft);
+      font-size: 12px;
+      font-weight: 700;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease;
+    }
+    .button:hover { border-color: var(--border-strong); background: var(--surface-muted); }
+    .button:active { transform: translateY(1px); }
+    .button.primary { color: #fff; background: var(--primary); border-color: var(--primary); }
+    .button.primary:hover { background: var(--primary-strong); border-color: var(--primary-strong); }
+    .button.danger { color: var(--danger); background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 25%, var(--border)); }
+    .button.ghost { color: var(--muted); background: transparent; }
+    .button.ghost:hover { color: var(--text); background: var(--surface-soft); }
+    .button.small { min-height: 29px; padding: 5px 8px; font-size: 11px; }
+
+    .app-sidebar {
+      grid-row: 2;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .sidebar-scroll { flex: 1; min-height: 0; padding: 15px 12px; overflow-y: auto; scrollbar-color: var(--border-strong) transparent; }
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      padding: 3px;
+      margin-bottom: 17px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--surface-muted);
+    }
+    .mode-switch button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px;
+      border-radius: 6px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .mode-switch button.active { color: var(--text); background: var(--surface); box-shadow: var(--shadow-sm); }
+    .side-nav { display: grid; gap: 3px; margin-bottom: 20px; }
+    .side-button, .session-link, .profile-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+      text-align: left;
+      transition: background .16s ease, color .16s ease;
+    }
+    .side-button { min-height: 37px; padding: 8px 9px; font-weight: 600; }
+    .side-button:hover, .session-link:hover, .profile-button:hover { color: var(--text); background: var(--surface-soft); }
+    .side-button.active { color: var(--text); background: var(--surface-selected); font-weight: 750; }
+    .side-button.new { margin-bottom: 3px; color: var(--primary); font-weight: 750; }
+    .side-button.new:hover { color: var(--primary-strong); background: var(--primary-soft); }
+    .side-label, .session-name, .profile-copy, .brand-copy { min-width: 0; }
+    .nav-label { display: flex; align-items: center; gap: 7px; padding: 0 9px 8px; color: var(--subtle); font-size: 10px; font-weight: 800; letter-spacing: .095em; text-transform: uppercase; }
+    .nav-label button { display: grid; place-items: center; width: 20px; height: 20px; margin-left: auto; border-radius: 5px; color: var(--subtle); background: transparent; }
+    .nav-label button:hover { color: var(--text); background: var(--surface-soft); }
+    .project-heading { display: flex; align-items: center; gap: 8px; padding: 7px 9px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .project-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+    .session-list { display: grid; gap: 2px; padding-left: 10px; margin-left: 12px; border-left: 1px solid var(--border); }
+    .session-link { padding: 7px 8px; gap: 8px; font-size: 12px; line-height: 1.25; }
+    .session-link.active { color: var(--text); background: var(--surface-selected); }
+    .session-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .session-status { width: 7px; height: 7px; border-radius: 50%; background: var(--subtle); flex: 0 0 auto; }
+    .session-status.running { background: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .session-status.complete { background: var(--success); }
+    .session-status.paused { background: var(--warning); }
+    .sidebar-footer { flex: 0 0 auto; padding: 10px 12px; border-top: 1px solid var(--border); }
+    .profile-button { padding: 7px; }
+    .avatar { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; color: var(--primary); background: var(--primary-soft); font-size: 10px; font-weight: 800; flex: 0 0 auto; }
+    .profile-copy { flex: 1; }
+    .profile-name { color: var(--text); font-size: 12px; font-weight: 750; }
+    .profile-role { color: var(--subtle); font-size: 10px; }
+    .app-shell.sidebar-collapsed .mode-switch,
+    .app-shell.sidebar-collapsed .side-label,
+    .app-shell.sidebar-collapsed .nav-label > span,
+    .app-shell.sidebar-collapsed .nav-label > button,
+    .app-shell.sidebar-collapsed .project-heading > span:not(.project-pulse),
+    .app-shell.sidebar-collapsed .session-list,
+    .app-shell.sidebar-collapsed .profile-copy { display: none; }
+    .app-shell.sidebar-collapsed .side-button,
+    .app-shell.sidebar-collapsed .project-heading,
+    .app-shell.sidebar-collapsed .profile-button { justify-content: center; }
+    .app-shell.sidebar-collapsed .sidebar-scroll { padding-inline: 12px; }
+
+    .app-main { grid-row: 2; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
+    .view { display: none; width: 100%; height: 100%; min-width: 0; min-height: 0; }
+    .view.active { display: flex; }
+
+    .workspace-view { flex-direction: column; background: var(--surface); }
+    .workspace-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 58px;
+      padding: 9px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .session-heading { min-width: 0; flex: 1; }
+    .breadcrumbs { display: flex; gap: 6px; color: var(--subtle); font-size: 10px; }
+    .breadcrumbs span + span::before { content: "/"; margin-right: 6px; color: var(--border-strong); }
+    .session-heading h1 { margin: 3px 0 0; overflow: hidden; color: var(--text); font-size: 15px; font-weight: 760; letter-spacing: -.015em; text-overflow: ellipsis; white-space: nowrap; }
+    .workspace-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+    .pill, .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .pill { padding: 5px 8px; border: 1px solid var(--border); color: var(--muted); background: var(--surface); font-size: 11px; }
+    .model-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+    .badge { padding: 3px 7px; }
+    .badge.success { color: var(--success); background: var(--success-soft); }
+    .badge.warning { color: var(--warning); background: var(--warning-soft); }
+    .badge.info { color: var(--info); background: var(--info-soft); }
+    .badge.primary { color: var(--primary); background: var(--primary-soft); }
+    .badge.neutral { color: var(--muted); background: var(--surface-soft); }
+    .header-action { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); background: var(--surface); font-size: 12px; font-weight: 700; }
+    .header-action:hover { color: var(--text); background: var(--surface-soft); border-color: var(--border-strong); }
+    .header-action.active { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+
+    .conversation-layout { display: grid; grid-template-columns: minmax(0, 1fr) 286px; flex: 1; min-height: 0; transition: grid-template-columns .18s ease; }
+    .conversation-layout.details-hidden { grid-template-columns: minmax(0, 1fr) 0; }
+    .conversation-layout.details-hidden .details-panel { opacity: 0; pointer-events: none; border-left-color: transparent; }
+    .conversation { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    .message-scroller { flex: 1; min-height: 0; padding: 28px clamp(20px, 5vw, 84px) 23px; overflow-y: auto; scrollbar-color: var(--border-strong) transparent; scroll-behavior: smooth; }
+    .conversation-lane { width: min(100%, 880px); margin: 0 auto; }
+    .marker { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; color: var(--subtle); font-size: 10px; font-weight: 750; }
+    .marker::before, .marker::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .message-row { display: flex; gap: 10px; margin-bottom: 21px; }
+    .message-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--primary); background: var(--primary-soft); flex: 0 0 auto; }
+    .message-avatar.user { border-radius: 50%; color: var(--text); background: var(--surface-soft); font-size: 10px; font-weight: 800; }
+    .message-content { min-width: 0; flex: 1; }
+    .message-meta { display: flex; align-items: baseline; gap: 8px; margin: 1px 0 6px; color: var(--subtle); font-size: 10px; }
+    .message-meta strong { color: var(--text); font-size: 12px; font-weight: 750; }
+    .message-body { color: var(--text); font-size: 14px; line-height: 1.62; }
+    .message-body p { margin: 0 0 9px; }
+    .message-body p:last-child { margin-bottom: 0; }
+    code { color: var(--code); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .91em; }
+    .message-body code, .tool-event code { padding: 1px 5px; border-radius: 4px; background: var(--surface-soft); }
+    .user-bubble { display: inline-block; max-width: min(100%, 700px); padding: 11px 13px; border: 1px solid var(--border); border-radius: 4px 13px 13px 13px; background: var(--surface-muted); line-height: 1.55; }
+    .attachment-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
+    .attachment { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: var(--surface); box-shadow: var(--shadow-sm); font-size: 11px; }
+    .attachment strong { max-width: 210px; overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+    .tool-event { display: flex; align-items: flex-start; gap: 10px; margin: 7px 0 16px 38px; padding: 10px 12px; border-left: 2px solid var(--border-strong); color: var(--muted); font-size: 12px; }
+    .tool-event .icon { color: var(--info); margin-top: 1px; }
+    .tool-event strong { display: block; color: var(--text); font-size: 12px; }
+    .tool-event p { margin: 2px 0 0; }
+    .plan-card { margin: 3px 0 20px 38px; padding: 14px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-muted); }
+    .plan-heading { display: flex; align-items: flex-start; gap: 10px; }
+    .plan-icon { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: var(--primary); background: var(--primary-soft); flex: 0 0 auto; }
+    .plan-heading strong { display: block; color: var(--text); font-size: 13px; }
+    .plan-heading p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .todo-list { display: grid; gap: 9px; margin: 13px 0 0 37px; }
+    .todo { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .todo-dot { display: grid; place-items: center; width: 16px; height: 16px; border: 1px solid var(--border-strong); border-radius: 50%; color: transparent; flex: 0 0 auto; }
+    .todo.done .todo-dot { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+    .todo.working .todo-dot { border-color: var(--primary); border-top-color: transparent; animation: spin .9s linear infinite; }
+    .todo.pending { color: var(--subtle); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .approval-card { margin: 2px 0 22px 38px; overflow: hidden; border: 1px solid #e7c996; border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-sm); }
+    body[data-theme="midnight"] .approval-card { border-color: #694e24; }
+    .approval-top { display: flex; align-items: flex-start; gap: 11px; padding: 14px; border-bottom: 1px solid #ead4af; background: var(--warning-soft); }
+    body[data-theme="midnight"] .approval-top { border-color: #5b421e; }
+    .approval-icon { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 8px; color: var(--warning); background: var(--surface); flex: 0 0 auto; }
+    .approval-heading { min-width: 0; flex: 1; }
+    .eyebrow { display: block; margin-bottom: 3px; color: var(--subtle); font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .approval-heading h2 { margin: 0; color: var(--text); font-size: 14px; }
+    .approval-heading p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .risk { padding: 3px 7px; border: 1px solid #e5c58e; border-radius: 999px; color: var(--warning); background: var(--surface); font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .approval-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 13px 14px 11px; }
+    .approval-detail small { display: block; margin-bottom: 3px; color: var(--subtle); font-size: 10px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .approval-detail strong { color: var(--text); font-size: 12px; font-weight: 650; }
+    .approval-preview { margin: 0 14px 13px; padding: 10px; overflow-x: auto; border: 1px solid var(--border); border-radius: 7px; color: var(--code); background: var(--surface-muted); font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+    .approval-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 14px 14px; }
+    .safe-outcome { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 21px 38px; padding: 12px; border-radius: 10px; color: var(--info); background: var(--info-soft); }
+    .safe-outcome strong { display: block; color: var(--text); font-size: 12px; }
+    .safe-outcome p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .complete-card { margin: 2px 0 22px 38px; padding: 15px; border: 1px solid #a5d6b7; border-radius: 11px; background: var(--success-soft); }
+    body[data-theme="midnight"] .complete-card { border-color: #337952; }
+    .complete-heading { display: flex; align-items: flex-start; gap: 10px; }
+    .complete-icon { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 8px; color: var(--success); background: var(--surface); flex: 0 0 auto; }
+    .complete-heading h2 { margin: 0; color: var(--text); font-size: 14px; }
+    .complete-heading p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .complete-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 13px; }
+    .complete-metric { padding: 9px; border: 1px solid #b8dfc5; border-radius: 8px; background: var(--surface); }
+    body[data-theme="midnight"] .complete-metric { border-color: #337952; }
+    .complete-metric small { display: block; color: var(--subtle); font-size: 10px; }
+    .complete-metric strong { display: block; margin-top: 2px; color: var(--text); font-size: 12px; }
+    .complete-actions { display: flex; gap: 8px; margin-top: 13px; }
+
+    .composer-zone { flex: 0 0 auto; padding: 14px clamp(20px, 5vw, 84px) 17px; border-top: 1px solid var(--border); background: var(--surface); }
+    .composer { width: min(100%, 880px); margin: 0 auto; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 13px; background: var(--surface); box-shadow: 0 6px 18px rgba(20, 20, 25, .05); }
+    .composer:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus); }
+    .composer textarea { display: block; width: 100%; min-height: 61px; max-height: 150px; padding: 13px 14px 8px; border: 0; resize: vertical; outline: 0; color: var(--text); background: transparent; line-height: 1.5; }
+    .composer textarea::placeholder { color: var(--subtle); }
+    .composer-bottom { display: flex; align-items: center; gap: 6px; padding: 5px 7px 7px; }
+    .composer-bottom .icon-button { width: 29px; height: 29px; }
+    .composer-option { display: inline-flex; align-items: center; gap: 5px; padding: 5px 7px; border-radius: 6px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 700; }
+    .composer-option:hover { color: var(--text); background: var(--surface-soft); }
+    .composer-spacer { flex: 1; }
+    .send-button { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 8px; color: #fff; background: var(--primary); }
+    .send-button:hover { background: var(--primary-strong); }
+    .composer-note { width: min(100%, 880px); margin: 7px auto 0; color: var(--subtle); font-size: 10px; text-align: center; }
+
+    .details-panel { min-width: 0; padding: 18px 14px; overflow-y: auto; border-left: 1px solid var(--border); color: var(--text); background: var(--surface-muted); transition: opacity .16s ease; }
+    .details-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 12px; font-weight: 800; }
+    .details-section { padding: 13px 0; border-top: 1px solid var(--border); }
+    .details-section:first-of-type { padding-top: 0; border-top: 0; }
+    .details-section h2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 9px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .detail-todo { display: flex; gap: 8px; padding: 6px 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .detail-todo .todo-dot { width: 15px; height: 15px; margin-top: 1px; }
+    .detail-todo.done .todo-dot { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+    .detail-todo.working .todo-dot { border-color: var(--primary); border-top-color: transparent; animation: spin .9s linear infinite; }
+    .file-list { display: grid; gap: 4px; }
+    .file-row { display: flex; align-items: center; gap: 7px; width: 100%; padding: 7px; border-radius: 7px; color: var(--muted); background: transparent; font-size: 11px; text-align: left; }
+    .file-row:hover { color: var(--text); background: var(--surface-soft); }
+    .file-row code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-metrics { display: grid; grid-template-columns: 1fr auto; gap: 7px 10px; color: var(--muted); font-size: 11px; }
+    .detail-metrics strong { color: var(--text); font-weight: 700; }
+
+    .page-view { overflow-y: auto; padding: 28px clamp(20px, 5vw, 64px) 42px; scrollbar-color: var(--border-strong) transparent; }
+    .page-frame { width: min(100%, 1200px); margin: 0 auto; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+    .page-header h1 { margin: 0; color: var(--text); font-size: clamp(23px, 3vw, 30px); letter-spacing: -.04em; line-height: 1.16; }
+    .page-header p { max-width: 680px; margin: 7px 0 0; color: var(--muted); }
+    .page-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .metric-card, .content-card { overflow: hidden; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-sm); }
+    .metric-card { padding: 16px; }
+    .metric-label { color: var(--muted); font-size: 12px; font-weight: 650; }
+    .metric-value { margin-top: 5px; color: var(--text); font-size: 25px; font-weight: 780; letter-spacing: -.045em; }
+    .metric-context { display: flex; gap: 5px; margin-top: 5px; color: var(--subtle); font-size: 11px; }
+    .metric-context.good { color: var(--success); }
+    .content-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px; border-bottom: 1px solid var(--border); }
+    .content-header h2 { margin: 0; color: var(--text); font-size: 14px; letter-spacing: -.01em; }
+    .content-header p { margin: 2px 0 0; color: var(--subtle); font-size: 11px; }
+    .home-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(285px, .8fr); gap: 15px; }
+    .activity-list { display: grid; }
+    .activity-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); background: transparent; text-align: left; }
+    .activity-row:last-child { border-bottom: 0; }
+    .activity-row:hover { background: var(--surface-muted); }
+    .activity-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--muted); background: var(--surface-soft); }
+    .activity-icon.success { color: var(--success); background: var(--success-soft); }
+    .activity-icon.warning { color: var(--warning); background: var(--warning-soft); }
+    .activity-icon.info { color: var(--info); background: var(--info-soft); }
+    .activity-copy { min-width: 0; }
+    .activity-copy strong { display: block; overflow: hidden; color: var(--text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-copy span { display: block; overflow: hidden; margin-top: 2px; color: var(--subtle); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-time { color: var(--subtle); font-size: 11px; white-space: nowrap; }
+    .chart-wrap { padding: 15px 16px 17px; }
+    .chart-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 11px; }
+    .chart-title strong { color: var(--text); font-size: 13px; }
+    .chart-title span { color: var(--subtle); font-size: 11px; }
+    .line-chart { width: 100%; height: 138px; overflow: visible; }
+    .chart-grid { stroke: var(--border); stroke-width: 1; }
+    .chart-line { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-fill { fill: url(#fill); opacity: .6; }
+    .chart-dot { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+    .chart-labels { display: flex; justify-content: space-between; margin-top: 4px; color: var(--subtle); font-size: 10px; }
+    .quick-list { display: grid; gap: 4px; padding: 8px; }
+    .quick-action { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px; border-radius: 8px; color: var(--muted); background: transparent; text-align: left; }
+    .quick-action:hover { color: var(--text); background: var(--surface-soft); }
+    .quick-action strong { display: block; color: var(--text); font-size: 12px; }
+    .quick-action span { display: block; margin-top: 1px; color: var(--subtle); font-size: 11px; }
+
+    .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 15px; }
+    .summary-card { padding: 16px; margin-bottom: 15px; }
+    .summary-top { display: flex; align-items: flex-start; gap: 13px; }
+    .summary-icon { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 10px; color: var(--warning); background: var(--warning-soft); flex: 0 0 auto; }
+    .summary-icon.done { color: var(--success); background: var(--success-soft); }
+    .summary-card h2 { margin: 0; color: var(--text); font-size: 15px; }
+    .summary-card p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .session-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .session-kpis small { display: block; color: var(--subtle); font-size: 10px; }
+    .session-kpis strong { display: block; margin-top: 3px; color: var(--text); font-size: 12px; }
+    .tabs { display: flex; gap: 2px; padding: 4px; margin-bottom: 13px; overflow-x: auto; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-muted); }
+    .tabs button { flex: 0 0 auto; padding: 7px 10px; border-radius: 6px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 700; }
+    .tabs button:hover { color: var(--text); }
+    .tabs button.active { color: var(--text); background: var(--surface); box-shadow: var(--shadow-sm); }
+    .session-panel { display: none; }
+    .session-panel.active { display: block; }
+    .timeline { padding: 4px 16px 16px; }
+    .timeline-event { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; position: relative; padding: 12px 0 11px; }
+    .timeline-event:not(:last-child)::before { content: ""; position: absolute; top: 29px; bottom: -2px; left: 8px; width: 1px; background: var(--border); }
+    .timeline-dot { display: grid; place-items: center; width: 17px; height: 17px; margin-top: 1px; border-radius: 50%; color: var(--subtle); background: var(--surface-soft); z-index: 1; }
+    .timeline-dot.success { color: var(--success); background: var(--success-soft); }
+    .timeline-dot.warning { color: var(--warning); background: var(--warning-soft); }
+    .timeline-dot.info { color: var(--info); background: var(--info-soft); }
+    .timeline-event strong { color: var(--text); font-size: 12px; }
+    .timeline-event p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .timeline-event time { display: inline-block; margin-top: 3px; color: var(--subtle); font-size: 10px; }
+    .diff-card { margin: 0 16px 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; }
+    .diff-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--surface-muted); }
+    .diff-header code { color: var(--text); font-weight: 700; }
+    .diff-body { padding: 10px 0; overflow-x: auto; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .diff-line { display: block; padding: 0 12px; white-space: pre; }
+    .diff-line.add { color: var(--success); background: var(--success-soft); }
+    .diff-line.remove { color: var(--danger); background: var(--danger-soft); }
+    .diff-line.muted { color: var(--subtle); }
+    .terminal { margin: 0 16px 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 9px; background: #121417; color: #d9e0eb; }
+    .terminal-bar { display: flex; align-items: center; gap: 5px; padding: 9px 11px; background: #1c1f24; color: #aeb6c6; font-size: 10px; }
+    .terminal-dot { width: 8px; height: 8px; border-radius: 50%; background: #606a7d; }
+    .terminal-title { margin-left: 4px; }
+    .terminal-body { padding: 13px; font: 11px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+    .term-command { color: #9bd5ff; }
+    .term-good { color: #8de4a7; }
+    .term-warning { color: #ffd18b; }
+    .review-content { padding: 16px; }
+    .review-callout { display: flex; gap: 11px; padding: 13px; border-radius: 9px; color: var(--success); background: var(--success-soft); }
+    .review-callout h3 { margin: 0; color: var(--text); font-size: 13px; }
+    .review-callout p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .review-list { display: grid; gap: 8px; margin: 15px 0 0; padding-left: 19px; }
+    .review-list li { color: var(--muted); font-size: 12px; }
+    .review-list li::marker { color: var(--success); }
+    .rail { display: grid; align-content: start; gap: 12px; }
+    .rail-card { padding: 14px; }
+    .rail-card h2 { margin: 0 0 9px; color: var(--text); font-size: 13px; }
+    .rail-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .rail-card dl { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 11px 0 0; font-size: 11px; }
+    .rail-card dt { color: var(--subtle); }
+    .rail-card dd { margin: 0; color: var(--text); font-weight: 700; }
+
+    .archive-list { display: grid; gap: 1px; }
+    .archive-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 14px 16px; }
+    .archive-item:hover { background: var(--surface-muted); }
+    .archive-item h2 { margin: 0; color: var(--text); font-size: 13px; }
+    .archive-item p { margin: 3px 0 0; color: var(--subtle); font-size: 11px; }
+    .report-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+    .range { padding: 6px 9px; border-radius: 6px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 750; }
+    .range.active { color: var(--primary); background: var(--primary-soft); }
+    .reports-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); gap: 15px; }
+    .bar-chart { display: flex; align-items: end; justify-content: space-between; gap: 11px; height: 212px; padding: 18px 18px 6px; border-bottom: 1px solid var(--border); }
+    .bar-column { position: relative; display: flex; align-items: end; justify-content: center; height: 100%; flex: 1; }
+    .bar { width: min(34px, 72%); min-height: 9px; border-radius: 5px 5px 2px 2px; background: linear-gradient(to top, var(--primary), color-mix(in srgb, var(--primary) 45%, var(--surface))); }
+    .bar-column span { position: absolute; bottom: -22px; color: var(--subtle); font-size: 10px; }
+    .bar-caption { display: flex; justify-content: space-between; padding: 29px 18px 14px; color: var(--subtle); font-size: 11px; }
+    .donut-wrap { display: grid; place-items: center; padding: 18px 18px 8px; }
+    .donut { position: relative; display: grid; place-items: center; width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(var(--success) 0 68%, var(--primary) 68% 87%, var(--warning) 87% 100%); }
+    .donut::after { content: ""; position: absolute; inset: 22px; border-radius: 50%; background: var(--surface); }
+    .donut-copy { z-index: 1; text-align: center; }
+    .donut-copy strong { display: block; color: var(--text); font-size: 26px; letter-spacing: -.05em; }
+    .donut-copy span { color: var(--subtle); font-size: 10px; }
+    .legend { display: grid; gap: 8px; padding: 10px 17px 17px; }
+    .legend-item { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .legend-name { display: flex; align-items: center; gap: 7px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    .modal-layer { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; padding: 20px; background: var(--overlay); backdrop-filter: blur(3px); }
+    .modal-layer.open { display: flex; }
+    .modal { width: min(100%, 860px); max-height: min(760px, calc(100dvh - 40px)); overflow: hidden; border: 1px solid var(--border); border-radius: 13px; color: var(--text); background: var(--surface); box-shadow: 0 24px 60px rgba(10, 12, 16, .30); }
+    .modal.small { width: min(100%, 530px); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; padding: 0 17px; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+    .modal-header p { margin: 2px 0 0; color: var(--subtle); font-size: 11px; }
+    .modal-body { max-height: calc(min(760px, 100dvh - 40px) - 54px); padding: 18px; overflow-y: auto; }
+    .form { display: grid; gap: 15px; }
+    .field { display: grid; gap: 6px; }
+    .field label { color: var(--text); font-size: 12px; font-weight: 750; }
+    .field-help { color: var(--subtle); font-size: 11px; }
+    .input, .select, .textarea { width: 100%; padding: 10px 11px; border: 1px solid var(--border-strong); border-radius: 8px; outline: 0; color: var(--text); background: var(--surface); }
+    .textarea { min-height: 100px; resize: vertical; }
+    .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+    .settings-modal { display: grid; grid-template-columns: 244px minmax(0, 1fr); width: min(100%, 1060px); max-height: min(750px, calc(100dvh - 40px)); }
+    .settings-rail { display: flex; flex-direction: column; min-width: 0; padding: 17px 12px; overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface-muted); }
+    .settings-rail-title { padding: 4px 8px 11px; color: var(--subtle); font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .settings-group { margin-bottom: 17px; }
+    .settings-group-label { padding: 3px 8px 6px; color: var(--subtle); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .settings-nav { display: grid; gap: 3px; }
+    .settings-nav button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px; border-radius: 7px; color: var(--muted); background: transparent; font-size: 12px; text-align: left; }
+    .settings-nav button:hover { color: var(--text); background: var(--surface-soft); }
+    .settings-nav button.active { color: var(--text); background: var(--surface); box-shadow: var(--shadow-sm); font-weight: 750; }
+    .settings-version { margin-top: auto; padding: 16px 8px 0; color: var(--subtle); font-size: 11px; }
+    .settings-main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--surface); }
+    .settings-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 62px; padding: 0 20px; border-bottom: 1px solid var(--border); }
+    .settings-header h2 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
+    .settings-content { min-height: 0; padding: 22px 28px 26px; overflow-y: auto; }
+    .settings-intro { margin: 0 0 17px; color: var(--muted); font-size: 13px; }
+    .settings-card { margin-bottom: 13px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+    .settings-row { display: flex; align-items: center; gap: 16px; min-height: 74px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .settings-row:last-child { border-bottom: 0; }
+    .settings-copy { min-width: 0; flex: 1; }
+    .settings-copy h3 { margin: 0; color: var(--text); font-size: 13px; }
+    .settings-copy p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .switch { width: 34px; height: 20px; padding: 2px; border-radius: 999px; background: var(--border-strong); transition: background .16s ease; }
+    .switch span { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-sm); transition: transform .16s ease; }
+    .switch.on { background: var(--primary); }
+    .switch.on span { transform: translateX(14px); }
+    .provider-list { display: grid; gap: 8px; }
+    .provider-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; align-items: center; gap: 11px; padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+    .provider-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: var(--primary); background: var(--primary-soft); }
+    .provider-row h3 { margin: 0; color: var(--text); font-size: 13px; }
+    .provider-row p { margin: 2px 0 0; color: var(--subtle); font-size: 11px; }
+    .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .theme-card { padding: 10px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--surface); text-align: left; }
+    .theme-card:hover { border-color: var(--primary); }
+    .theme-card.active { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+    .theme-preview { display: grid; grid-template-columns: 28% 1fr; height: 60px; margin-bottom: 9px; overflow: hidden; border: 1px solid rgba(0,0,0,.07); border-radius: 6px; }
+    .preview-side { border-right: 1px solid #ddd; background: #f4f4f3; }
+    .preview-main { padding: 8px; background: #fff; }
+    .preview-line { width: 70%; height: 5px; margin-bottom: 7px; border-radius: 999px; background: #d9d9d5; }
+    .preview-line.accent { width: 45%; background: #4f46e5; }
+    .theme-card[data-theme-choice="midnight"] .preview-side { border-color: #30343d; background: #181a20; }
+    .theme-card[data-theme-choice="midnight"] .preview-main { background: #22242a; }
+    .theme-card[data-theme-choice="midnight"] .preview-line { background: #505461; }
+    .theme-card[data-theme-choice="midnight"] .preview-line.accent { background: #a18cff; }
+    .theme-card[data-theme-choice="ocean"] .preview-side { border-color: #cce3e8; background: #eaf6f9; }
+    .theme-card[data-theme-choice="ocean"] .preview-line { background: #c8e0e6; }
+    .theme-card[data-theme-choice="ocean"] .preview-line.accent { background: #087b9e; }
+    .theme-card[data-theme-choice="forest"] .preview-side { border-color: #d4e0ce; background: #edf3e9; }
+    .theme-card[data-theme-choice="forest"] .preview-line { background: #d3dfce; }
+    .theme-card[data-theme-choice="forest"] .preview-line.accent { background: #31744e; }
+    .theme-card strong { display: block; color: var(--text); font-size: 12px; }
+    .theme-card span { display: block; margin-top: 2px; color: var(--subtle); font-size: 10px; }
+    .command-list { display: grid; gap: 5px; }
+    .command-option { display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px; border-radius: 8px; color: var(--muted); background: transparent; text-align: left; }
+    .command-option:hover { color: var(--text); background: var(--surface-soft); }
+    .command-option strong { display: block; color: var(--text); font-size: 12px; }
+    .command-option span { display: block; margin-top: 2px; color: var(--subtle); font-size: 11px; }
+    kbd { margin-left: auto; padding: 2px 5px; border: 1px solid var(--border); border-radius: 4px; color: var(--subtle); font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .toast { position: fixed; bottom: 20px; left: 50%; z-index: 60; display: flex; align-items: center; gap: 8px; padding: 10px 13px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--surface); box-shadow: var(--shadow); font-size: 12px; pointer-events: none; opacity: 0; transform: translate(-50%, 100px); transition: transform .22s ease, opacity .22s ease; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast .icon { color: var(--success); }
+    .mobile-scrim { display: none; }
+
+    @media (max-width: 1120px) {
+      .conversation-layout { grid-template-columns: minmax(0, 1fr) 250px; }
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .home-grid, .review-layout, .reports-grid { grid-template-columns: 1fr; }
+      .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .workspace-actions .pill { display: none; }
+    }
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .app-shell, .app-shell.sidebar-collapsed { grid-template-columns: 1fr; }
+      .app-sidebar { position: fixed; top: 60px; bottom: 0; left: 0; z-index: 30; width: min(274px, calc(100vw - 48px)); transform: translateX(-110%); box-shadow: var(--shadow); transition: transform .2s ease; }
+      .app-shell.sidebar-open .app-sidebar { transform: translateX(0); }
+      .mobile-scrim { position: fixed; inset: 60px 0 0; z-index: 25; background: var(--overlay); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+      .app-shell.sidebar-open .mobile-scrim { display: block; opacity: 1; pointer-events: auto; }
+      .app-shell.sidebar-collapsed .mode-switch,
+      .app-shell.sidebar-collapsed .side-label,
+      .app-shell.sidebar-collapsed .nav-label > span,
+      .app-shell.sidebar-collapsed .nav-label > button,
+      .app-shell.sidebar-collapsed .project-heading > span:not(.project-pulse),
+      .app-shell.sidebar-collapsed .session-list,
+      .app-shell.sidebar-collapsed .profile-copy { display: revert; }
+      .app-shell.sidebar-collapsed .side-button,
+      .app-shell.sidebar-collapsed .project-heading,
+      .app-shell.sidebar-collapsed .profile-button { justify-content: flex-start; }
+      .conversation-layout { grid-template-columns: minmax(0, 1fr); }
+      .details-panel { display: none; }
+      .workspace-actions [data-action="toggle-details"] { display: none; }
+      .header-context { display: none; }
+      .message-scroller { padding: 22px 18px; }
+      .composer-zone { padding: 11px 14px 14px; }
+      .page-view { padding: 23px 17px 30px; }
+      .settings-modal { grid-template-columns: 190px minmax(0, 1fr); }
+      .settings-content { padding: 18px; }
+    }
+    @media (max-width: 650px) {
+      .web-header { gap: 8px; padding: 0 10px; }
+      .brand-subtitle, .header-status, .header-actions .button span { display: none; }
+      .header-actions .button { width: 33px; padding: 0; }
+      .workspace-header { padding: 9px 14px; gap: 8px; }
+      .workspace-actions .header-action span { display: none; }
+      .session-heading h1 { font-size: 14px; }
+      .message-scroller { padding: 18px 14px; }
+      .message-avatar { width: 25px; height: 25px; }
+      .tool-event, .plan-card, .approval-card, .safe-outcome, .complete-card { margin-left: 0; }
+      .todo-list { margin-left: 0; }
+      .approval-details { grid-template-columns: 1fr; gap: 8px; }
+      .approval-actions { flex-wrap: wrap; justify-content: stretch; }
+      .approval-actions .button { flex: 1; }
+      .complete-metrics { grid-template-columns: 1fr; }
+      .composer-option.model { display: none; }
+      .page-header { flex-direction: column; margin-bottom: 17px; }
+      .page-actions { justify-content: flex-start; }
+      .metrics-grid { gap: 8px; }
+      .metric-card { padding: 13px; }
+      .metric-value { font-size: 21px; }
+      .session-kpis { grid-template-columns: 1fr 1fr; }
+      .rail { grid-template-columns: 1fr; }
+      .archive-item { grid-template-columns: 1fr auto; }
+      .archive-date { display: none; }
+      .modal-layer { padding: 12px; }
+      .modal-body { padding: 14px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .settings-modal { display: block; max-height: calc(100dvh - 24px); }
+      .settings-rail { display: flex; gap: 4px; padding: 9px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+      .settings-rail-title, .settings-group-label, .settings-version { display: none; }
+      .settings-group { display: contents; margin: 0; }
+      .settings-nav { display: flex; gap: 4px; }
+      .settings-nav button { width: auto; padding: 7px 9px; white-space: nowrap; }
+      .settings-nav .icon { display: none; }
+      .settings-content { max-height: calc(100dvh - 180px); padding: 14px; }
+      .settings-row { gap: 9px; padding: 13px; }
+      .settings-copy p { font-size: 11px; }
+      .provider-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
+      .provider-row .button { display: none; }
+      .theme-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-theme="studio">
+  <svg class="sr-only" aria-hidden="true" focusable="false">
+    <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"></path></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+    <symbol id="panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></symbol>
+    <symbol id="home" viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5"></path><path d="M5.5 9.5V21h13V9.5"></path><path d="M9.5 21v-6h5v6"></path></symbol>
+    <symbol id="chat" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.4 0-2.7-.4-3.8-1.1L4 19l1.2-4.2A7.5 7.5 0 1 1 20 11.5z"></path></symbol>
+    <symbol id="archive" viewBox="0 0 24 24"><path d="M4 7h16v13H4z"></path><path d="M3 4h18v3H3z"></path><path d="M10 11h4"></path></symbol>
+    <symbol id="chart" viewBox="0 0 24 24"><path d="M4 20V4"></path><path d="M4 20h17"></path><path d="M7 15l4-4 3 2 5-6"></path></symbol>
+    <symbol id="settings" viewBox="0 0 24 24"><path d="M4 6h6M14 6h6M4 18h10M18 18h2M4 12h2M10 12h10"></path><circle cx="12" cy="6" r="2"></circle><circle cx="16" cy="18" r="2"></circle><circle cx="8" cy="12" r="2"></circle></symbol>
+    <symbol id="code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"></path></symbol>
+    <symbol id="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></symbol>
+    <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></symbol>
+    <symbol id="send" viewBox="0 0 24 24"><path d="M21 3L9 15"></path><path d="M21 3l-7 18-5-6-6-5 18-7z"></path></symbol>
+    <symbol id="clip" viewBox="0 0 24 24"><path d="M21.4 11.6l-8.8 8.8a6 6 0 0 1-8.5-8.5l9.1-9.1a4 4 0 0 1 5.7 5.7l-9.1 9.1a2 2 0 0 1-2.8-2.8l8.3-8.3"></path></symbol>
+    <symbol id="folder" viewBox="0 0 24 24"><path d="M3 6.5h7l2 2h9v10.5H3z"></path></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M5 12l4.5 4.5L19 7"></path></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5l3 2"></path></symbol>
+    <symbol id="file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v5h5M9 13h6M9 17h5"></path></symbol>
+    <symbol id="terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9l3 3-3 3M12.5 15H17"></path></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-2.9 8.3-7 10-4.1-1.7-7-5.5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></symbol>
+    <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></symbol>
+    <symbol id="play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"></path></symbol>
+    <symbol id="refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.8-4L3 10"></path><path d="M3 5v5h5M4 13a8 8 0 0 0 14.8 4L21 14"></path><path d="M21 19v-5h-5"></path></symbol>
+    <symbol id="layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 12l9 5 9-5M3 16l9 5 9-5"></path></symbol>
+    <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></symbol>
+    <symbol id="external" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8"></path><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path></symbol>
+  </svg>
+
+  <div class="app-shell" id="appShell">
+    <header class="web-header">
+      <button class="icon-button" data-action="toggle-sidebar" aria-label="Toggle navigation"><svg class="icon"><use href="#panel"></use></svg></button>
+      <div class="header-brand">
+        <div class="brand-mark"><svg class="icon"><use href="#spark"></use></svg></div>
+        <div class="brand-copy"><div class="brand-name">SharpAgent</div><div class="brand-subtitle">Controlled AI coding workspace</div></div>
+      </div>
+      <div class="header-context"><span>Active session</span><strong id="headerSession">Pricing test investigation</strong></div>
+      <div class="header-spacer"></div>
+      <div class="header-actions">
+        <span class="header-status"><span class="status-dot"></span>Trusted local workspace</span>
+        <button class="button primary" data-action="open-new"><svg class="icon sm"><use href="#plus"></use></svg><span>New session</span></button>
+        <button class="icon-button" data-action="open-command" aria-label="Open command palette" title="Command palette"><svg class="icon"><use href="#search"></use></svg></button>
+        <button class="icon-button" data-action="open-admin" aria-label="Open administration" title="Administration"><svg class="icon"><use href="#settings"></use></svg></button>
+      </div>
+    </header>
+
+    <aside class="app-sidebar" aria-label="Application navigation">
+      <div class="sidebar-scroll">
+        <div class="mode-switch" role="tablist" aria-label="Primary location">
+          <button data-action="go-view" data-target="home" role="tab" aria-selected="false"><svg class="icon sm"><use href="#home"></use></svg><span>Home</span></button>
+          <button class="active" data-action="go-view" data-target="workspace" role="tab" aria-selected="true"><svg class="icon sm"><use href="#code"></use></svg><span>Agent</span></button>
+        </div>
+        <nav class="side-nav" aria-label="Main navigation">
+          <button class="side-button new" data-action="open-new"><svg class="icon"><use href="#plus"></use></svg><span class="side-label">New session</span></button>
+          <button class="side-button active" data-nav="workspace" data-action="go-view" data-target="workspace"><svg class="icon"><use href="#chat"></use></svg><span class="side-label">Agent workspace</span></button>
+          <button class="side-button" data-nav="home" data-action="go-view" data-target="home"><svg class="icon"><use href="#home"></use></svg><span class="side-label">Dashboard</span></button>
+          <button class="side-button" data-nav="archive" data-action="go-view" data-target="archive"><svg class="icon"><use href="#archive"></use></svg><span class="side-label">Archive</span></button>
+          <button class="side-button" data-nav="reports" data-action="go-view" data-target="reports"><svg class="icon"><use href="#chart"></use></svg><span class="side-label">Statistics</span></button>
+        </nav>
+        <div class="nav-label"><span>Workspace</span><button data-action="open-new" aria-label="Create session"><svg class="icon sm"><use href="#plus"></use></svg></button></div>
+        <div class="project-heading"><span class="project-pulse"></span><span>SharpAgent / storefront</span></div>
+        <div class="session-list">
+          <button class="session-link active" data-action="go-view" data-target="workspace"><span class="session-status running" id="activeStatus"></span><span class="session-name" id="activeTitle">Pricing test investigation</span></button>
+          <button class="session-link" data-action="go-view" data-target="session"><span class="session-status complete"></span><span class="session-name">Restore address validation</span></button>
+          <button class="session-link" data-action="restore-archive"><span class="session-status paused"></span><span class="session-name">Audit checkout totals</span></button>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <button class="profile-button" data-action="open-profile"><span class="avatar">ZY</span><span class="profile-copy"><span class="profile-name">ZiYang</span><span class="profile-role">Local operator</span></span><svg class="icon sm"><use href="#chevron"></use></svg></button>
+      </div>
+    </aside>
+    <div class="mobile-scrim" data-action="close-mobile-sidebar"></div>
+
+    <main class="app-main">
+      <section class="view workspace-view active" data-view="workspace" aria-label="Agent workspace">
+        <header class="workspace-header">
+          <div class="session-heading">
+            <div class="breadcrumbs"><span>storefront</span><span>apps/web</span></div>
+            <h1 id="workspaceTitle">Pricing test investigation</h1>
+          </div>
+          <div class="workspace-actions">
+            <span class="pill"><span class="model-dot"></span>DeepSeek Coder</span>
+            <button class="header-action" data-action="show-session"><svg class="icon sm"><use href="#clock"></use></svg><span>Activity</span></button>
+            <button class="header-action active" id="detailsButton" data-action="toggle-details"><svg class="icon sm"><use href="#panel"></use></svg><span>Details</span></button>
+            <button class="icon-button" data-action="open-new" aria-label="More session actions"><svg class="icon"><use href="#more"></use></svg></button>
+          </div>
+        </header>
+
+        <div class="conversation-layout" id="conversationLayout">
+          <div class="conversation">
+            <div class="message-scroller" id="messageScroller" aria-live="polite">
+              <div class="conversation-lane">
+                <div class="marker">Today</div>
+                <article class="message-row">
+                  <div class="message-avatar user">ZY</div>
+                  <div class="message-content">
+                    <div class="message-meta"><strong>You</strong><span>09:42</span></div>
+                    <div class="user-bubble" id="taskMessage">Identify why the focused pricing page test is flaky, make the smallest safe repair, and run the focused test.</div>
+                    <div class="attachment-row"><div class="attachment"><svg class="icon sm"><use href="#file"></use></svg><span><strong>pricing-page.spec.ts</strong> · referenced test</span></div></div>
+                  </div>
+                </article>
+                <article class="message-row">
+                  <div class="message-avatar"><svg class="icon sm"><use href="#spark"></use></svg></div>
+                  <div class="message-content">
+                    <div class="message-meta"><strong>SharpAgent</strong><span id="agentTime">09:43</span></div>
+                    <div class="message-body">
+                      <p>I inspected the focused test and price normaliser. The intermittent failure comes from a locale-sensitive decimal conversion that receives a string with a comma separator.</p>
+                      <p>I have a narrow change ready: normalise the decimal before parsing and add one focused case. This writes two in-boundary files, so it needs your approval.</p>
+                    </div>
+                  </div>
+                </article>
+                <div class="tool-event"><svg class="icon sm"><use href="#folder"></use></svg><div><strong>Read and searched workspace</strong><p>Examined 7 source and test files inside <code>apps/web</code>. No network, install, or external path access requested.</p></div></div>
+
+                <section class="plan-card">
+                  <div class="plan-heading"><div class="plan-icon"><svg class="icon sm"><use href="#spark"></use></svg></div><div><strong id="planTitle">Plan ready — awaiting controlled action</strong><p id="planText">1 completed, 1 pending approval, 1 queued validation</p></div></div>
+                  <div class="todo-list">
+                    <div class="todo done" id="todoOne"><span class="todo-dot"><svg class="icon sm"><use href="#check"></use></svg></span><span>Trace the flaky decimal path</span></div>
+                    <div class="todo working" id="todoTwo"><span class="todo-dot"></span><span>Apply the smallest parser and test change</span></div>
+                    <div class="todo pending" id="todoThree"><span class="todo-dot"></span><span>Run the focused pricing test</span></div>
+                  </div>
+                </section>
+
+                <section class="approval-card" id="patchApproval" aria-label="Patch approval request">
+                  <div class="approval-top"><div class="approval-icon"><svg class="icon"><use href="#shield"></use></svg></div><div class="approval-heading"><span class="eyebrow">Permission request</span><h2>Apply a focused patch</h2><p>Change parser behaviour and one focused test within the registered workspace.</p></div><span class="risk">Approval required</span></div>
+                  <div class="approval-details"><div class="approval-detail"><small>Affected files</small><strong>2 files in <code>apps/web</code></strong></div><div class="approval-detail"><small>Policy decision</small><strong>Write requires one-time approval</strong></div></div>
+                  <div class="approval-preview">apps/web/src/lib/pricing.ts
++ normalise comma decimal values before Number parsing
+
+apps/web/src/lib/pricing.spec.ts
++ cover "12,50" input in focused pricing case</div>
+                  <div class="approval-actions"><button class="button ghost" data-action="show-session">Inspect details</button><button class="button danger" data-action="deny-patch">Deny</button><button class="button primary" data-action="approve-patch"><svg class="icon sm"><use href="#check"></use></svg>Approve once</button></div>
+                </section>
+
+                <section class="approval-card" id="testApproval" hidden aria-label="Test approval request">
+                  <div class="approval-top"><div class="approval-icon"><svg class="icon"><use href="#terminal"></use></svg></div><div class="approval-heading"><span class="eyebrow">Separate permission request</span><h2>Run the focused test</h2><p>The applied patch is complete. Test execution is a separately controlled action.</p></div><span class="risk">Command approval</span></div>
+                  <div class="approval-details"><div class="approval-detail"><small>Working directory</small><strong><code>apps/web</code></strong></div><div class="approval-detail"><small>Time limit</small><strong>2 minutes · no network</strong></div></div>
+                  <div class="approval-preview">pnpm vitest run src/lib/pricing.spec.ts</div>
+                  <div class="approval-actions"><button class="button ghost" data-action="show-session">Inspect details</button><button class="button danger" data-action="deny-test">Deny</button><button class="button primary" data-action="approve-test"><svg class="icon sm"><use href="#play"></use></svg>Run once</button></div>
+                </section>
+
+                <section class="safe-outcome" id="denialOutcome" hidden><svg class="icon"><use href="#shield"></use></svg><div><strong id="denialTitle">Action was not run</strong><p id="denialText">The decision was recorded. Give a revised instruction whenever you are ready.</p></div></section>
+
+                <section class="complete-card" id="completeCard" hidden aria-label="Completed run summary">
+                  <div class="complete-heading"><div class="complete-icon"><svg class="icon"><use href="#check"></use></svg></div><div><h2>Focused repair completed</h2><p>The normaliser now handles comma decimals; the focused test passed without altering unrelated behaviour.</p></div></div>
+                  <div class="complete-metrics"><div class="complete-metric"><small>Changed</small><strong>2 files · +9 / −1</strong></div><div class="complete-metric"><small>Validation</small><strong>1 test passed</strong></div><div class="complete-metric"><small>Run usage</small><strong>8.4k tokens · $0.06</strong></div></div>
+                  <div class="complete-actions"><button class="button" data-action="show-session"><svg class="icon sm"><use href="#code"></use></svg>Review change</button><button class="button ghost" data-action="open-new">Start follow-up</button></div>
+                </section>
+              </div>
+            </div>
+            <div class="composer-zone">
+              <form class="composer" id="promptForm">
+                <label class="sr-only" for="promptInput">Send a follow-up instruction</label>
+                <textarea id="promptInput" rows="2" placeholder="Ask SharpAgent to investigate, plan, or make a controlled change…"></textarea>
+                <div class="composer-bottom">
+                  <button type="button" class="icon-button" data-action="attach" aria-label="Attach context"><svg class="icon sm"><use href="#clip"></use></svg></button>
+                  <button type="button" class="composer-option" data-action="toggle-mode"><svg class="icon sm"><use href="#shield"></use></svg><span id="modeLabel">Controlled execute</span><svg class="icon sm"><use href="#chevron"></use></svg></button>
+                  <button type="button" class="composer-option model" data-action="choose-model"><span>DeepSeek Coder</span><svg class="icon sm"><use href="#chevron"></use></svg></button>
+                  <div class="composer-spacer"></div>
+                  <button class="send-button" type="submit" aria-label="Send instruction"><svg class="icon sm"><use href="#send"></use></svg></button>
+                </div>
+              </form>
+              <div class="composer-note">Writes and commands are shown for one-time approval. Credentials and raw environment values never enter the browser.</div>
+            </div>
+          </div>
+
+          <aside class="details-panel" id="detailsPanel" aria-label="Session details">
+            <div class="details-heading"><span>Session details</span><button class="icon-button" data-action="toggle-details" aria-label="Close details"><svg class="icon sm"><use href="#x"></use></svg></button></div>
+            <section class="details-section"><h2><span>Plan</span><span class="badge primary" id="planBadge">In progress</span></h2>
+              <div class="detail-todo done" id="detailTodoOne"><span class="todo-dot"><svg class="icon sm"><use href="#check"></use></svg></span><span>Trace the flaky decimal path</span></div>
+              <div class="detail-todo working" id="detailTodoTwo"><span class="todo-dot"></span><span>Apply the smallest parser and test change</span></div>
+              <div class="detail-todo" id="detailTodoThree"><span class="todo-dot"></span><span>Run the focused pricing test</span></div>
+            </section>
+            <section class="details-section"><h2><span>Changes</span><button class="button ghost small" data-action="show-session">Review</button></h2><div class="file-list"><button class="file-row" data-action="show-session"><svg class="icon sm"><use href="#file"></use></svg><code>src/lib/pricing.ts</code></button><button class="file-row" data-action="show-session"><svg class="icon sm"><use href="#file"></use></svg><code>src/lib/pricing.spec.ts</code></button></div></section>
+            <section class="details-section"><h2><span>Run usage</span><span class="badge neutral">Live</span></h2><dl class="detail-metrics"><dt>Provider</dt><dd>DeepSeek</dd><dt>Profile</dt><dd>coder-primary</dd><dt>Context</dt><dd>8.4k / 64k</dd><dt>Tool calls</dt><dd id="toolCalls">3 of 40</dd><dt>Est. cost</dt><dd>$0.06</dd></dl></section>
+            <section class="details-section"><h2><span>Safety</span></h2><dl class="detail-metrics"><dt>Workspace</dt><dd>In boundary</dd><dt>Network</dt><dd>Blocked</dd><dt>Approval expiry</dt><dd>09:53</dd></dl></section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view page-view" data-view="home" aria-label="Dashboard">
+        <div class="page-frame">
+          <header class="page-header"><div><h1>Good morning, ZiYang</h1><p>Your local agent runtime is ready. One controlled session is awaiting a decision.</p></div><div class="page-actions"><button class="button" data-action="open-admin"><svg class="icon sm"><use href="#settings"></use></svg>Administration</button><button class="button primary" data-action="open-new"><svg class="icon sm"><use href="#plus"></use></svg>New session</button></div></header>
+          <div class="metrics-grid">
+            <article class="metric-card"><div class="metric-label">Sessions this week</div><div class="metric-value">18</div><div class="metric-context good">↑ 4 from last week</div></article>
+            <article class="metric-card"><div class="metric-label">Completed safely</div><div class="metric-value">14</div><div class="metric-context good">78% completed</div></article>
+            <article class="metric-card"><div class="metric-label">Pending approvals</div><div class="metric-value" id="homePending">1</div><div class="metric-context">Patch action waiting</div></article>
+            <article class="metric-card"><div class="metric-label">Estimated spend</div><div class="metric-value">$2.18</div><div class="metric-context">Within $12 weekly cap</div></article>
+          </div>
+          <div class="home-grid">
+            <section class="content-card">
+              <header class="content-header"><div><h2>Recent sessions</h2><p>Resumable work with an immutable audit trail</p></div><button class="button ghost small" data-action="go-view" data-target="archive">View archive</button></header>
+              <div class="activity-list">
+                <button class="activity-row" data-action="go-view" data-target="workspace"><span class="activity-icon warning"><svg class="icon sm"><use href="#shield"></use></svg></span><span class="activity-copy"><strong>Pricing test investigation</strong><span>Awaiting approval to write two files</span></span><span class="activity-time">Now</span></button>
+                <button class="activity-row" data-action="go-view" data-target="session"><span class="activity-icon success"><svg class="icon sm"><use href="#check"></use></svg></span><span class="activity-copy"><strong>Restore address validation</strong><span>Completed · 3 files changed · 2 checks passed</span></span><span class="activity-time">42m</span></button>
+                <button class="activity-row" data-action="restore-archive"><span class="activity-icon info"><svg class="icon sm"><use href="#clock"></use></svg></span><span class="activity-copy"><strong>Audit checkout totals</strong><span>Paused after a policy denial; safe to resume</span></span><span class="activity-time">Yesterday</span></button>
+                <button class="activity-row" data-action="go-view" data-target="reports"><span class="activity-icon"><svg class="icon sm"><use href="#chart"></use></svg></span><span class="activity-copy"><strong>Weekly runtime summary</strong><span>Model usage, approvals, and duration patterns</span></span><span class="activity-time">Friday</span></button>
+              </div>
+            </section>
+            <div>
+              <section class="content-card">
+                <div class="chart-wrap"><div class="chart-title"><strong>Completed runs</strong><span>Last 7 days</span></div>
+                  <svg class="line-chart" viewBox="0 0 360 138" role="img" aria-label="Completed runs over seven days"><defs><linearGradient id="fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--primary)" stop-opacity=".25"></stop><stop offset="100%" stop-color="var(--primary)" stop-opacity="0"></stop></linearGradient></defs><path class="chart-grid" d="M0 28H360M0 70H360M0 112H360"></path><path class="chart-fill" d="M5 100 L62 83 L119 91 L176 52 L233 70 L290 30 L355 44 L355 126 L5 126 Z"></path><path class="chart-line" d="M5 100 L62 83 L119 91 L176 52 L233 70 L290 30 L355 44"></path><circle class="chart-dot" cx="5" cy="100" r="3"></circle><circle class="chart-dot" cx="62" cy="83" r="3"></circle><circle class="chart-dot" cx="119" cy="91" r="3"></circle><circle class="chart-dot" cx="176" cy="52" r="3"></circle><circle class="chart-dot" cx="233" cy="70" r="3"></circle><circle class="chart-dot" cx="290" cy="30" r="3"></circle><circle class="chart-dot" cx="355" cy="44" r="3"></circle></svg>
+                  <div class="chart-labels"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+                </div>
+              </section>
+              <section class="content-card" style="margin-top:15px;"><header class="content-header"><div><h2>Quick actions</h2><p>Common local runtime tasks</p></div></header><div class="quick-list">
+                <button class="quick-action" data-action="open-new"><svg class="icon"><use href="#code"></use></svg><span><strong>Start a controlled session</strong><span>Choose workspace, profile, and safety mode</span></span></button>
+                <button class="quick-action" data-action="open-admin" data-admin-open="providers"><svg class="icon"><use href="#layers"></use></svg><span><strong>Check model profiles</strong><span>Validate OpenCode Go, DeepSeek, or OpenRouter</span></span></button>
+                <button class="quick-action" data-action="go-view" data-target="reports"><svg class="icon"><use href="#chart"></use></svg><span><strong>Open statistics</strong><span>Review volume, duration, approvals, and cost</span></span></button>
+              </div></section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view page-view" data-view="session" aria-label="Session review">
+        <div class="page-frame">
+          <header class="page-header"><div><h1>Session review</h1><p>One source of truth for activity, decisions, changes, validation, and outcome.</p></div><div class="page-actions"><button class="button" data-action="go-view" data-target="workspace"><svg class="icon sm"><use href="#chat"></use></svg>Return to workspace</button><button class="button primary" data-action="open-new"><svg class="icon sm"><use href="#plus"></use></svg>Follow-up</button></div></header>
+          <div class="review-layout">
+            <div>
+              <section class="content-card summary-card"><div class="summary-top"><div class="summary-icon" id="reviewIcon"><svg class="icon"><use href="#clock"></use></svg></div><div><span class="eyebrow">storefront / apps/web</span><h2 id="reviewTitle">Pricing test investigation</h2><p id="reviewStatus">In progress · awaiting approval to apply a focused patch</p></div></div><div class="session-kpis"><div><small>Mode</small><strong id="reviewMode">Execute</strong></div><div><small>Profile</small><strong>DeepSeek Coder</strong></div><div><small>Elapsed</small><strong>02m 14s</strong></div><div><small>Context compactions</small><strong>0</strong></div></div></section>
+              <div class="tabs" role="tablist" aria-label="Session review tabs"><button class="active" data-action="tab" data-tab="activity" role="tab">Activity</button><button data-action="tab" data-tab="changes" role="tab">Changes</button><button data-action="tab" data-tab="terminal" role="tab">Terminal</button><button data-action="tab" data-tab="review" role="tab">Review</button></div>
+              <section class="content-card session-panel active" data-panel="activity"><header class="content-header"><div><h2>Chronological activity</h2><p>Persisted events, including policy and approval decisions</p></div><span class="badge info">Live stream</span></header><div class="timeline">
+                <div class="timeline-event"><div class="timeline-dot info"><svg class="icon sm"><use href="#plus"></use></svg></div><div><strong>Session created</strong><p>Controlled Execute mode with the default policy profile.</p><time>09:42:01</time></div></div>
+                <div class="timeline-event"><div class="timeline-dot"><svg class="icon sm"><use href="#spark"></use></svg></div><div><strong>Plan and todos recorded</strong><p>Agent found a locale-sensitive conversion path and created three tracked steps.</p><time>09:42:18</time></div></div>
+                <div class="timeline-event"><div class="timeline-dot info"><svg class="icon sm"><use href="#folder"></use></svg></div><div><strong>Read-only workspace tools completed</strong><p>Seven in-boundary files inspected; no external paths or network requests.</p><time>09:42:36</time></div></div>
+                <div class="timeline-event" id="patchEvent"><div class="timeline-dot warning"><svg class="icon sm"><use href="#shield"></use></svg></div><div><strong id="patchEventTitle">Patch approval requested</strong><p id="patchEventText">A focused write to pricing.ts and pricing.spec.ts is waiting for a one-time decision.</p><time>09:43:05</time></div></div>
+                <div class="timeline-event" id="testEvent" hidden><div class="timeline-dot warning"><svg class="icon sm"><use href="#terminal"></use></svg></div><div><strong id="testEventTitle">Test approval requested</strong><p id="testEventText">The patch was applied; the focused validation command requires separate consent.</p><time>09:44:11</time></div></div>
+                <div class="timeline-event" id="completeEvent" hidden><div class="timeline-dot success"><svg class="icon sm"><use href="#check"></use></svg></div><div><strong>Run completed</strong><p>Focused test passed. Review data and diff remain available for the session.</p><time>09:45:03</time></div></div>
+              </div></section>
+              <section class="content-card session-panel" data-panel="changes"><header class="content-header"><div><h2>Change review</h2><p>Two focused files in the allowed workspace</p></div><span class="badge warning" id="changeBadge">Proposed</span></header>
+                <div class="diff-card"><div class="diff-header"><code>src/lib/pricing.ts</code><span class="badge success">+4 −1</span></div><div class="diff-body"><span class="diff-line muted">  export function parsePrice(value: string | number) {</span><span class="diff-line remove">-   return Number(value)</span><span class="diff-line add">+   const normalised = String(value).replace(",", ".")</span><span class="diff-line add">+   return Number(normalised)</span><span class="diff-line muted">  }</span></div></div>
+                <div class="diff-card"><div class="diff-header"><code>src/lib/pricing.spec.ts</code><span class="badge success">+5 −0</span></div><div class="diff-body"><span class="diff-line muted">  describe("parsePrice", () =&gt; {</span><span class="diff-line add">+   it("normalises comma decimals", () =&gt; {</span><span class="diff-line add">+     expect(parsePrice("12,50")).toBe(12.5)</span><span class="diff-line add">+   })</span><span class="diff-line muted">  })</span></div></div>
+              </section>
+              <section class="content-card session-panel" data-panel="terminal"><header class="content-header"><div><h2>Validation output</h2><p>Bounded command output from the isolated workspace tool executor</p></div><span class="badge neutral" id="terminalBadge">Awaiting approval</span></header><div class="terminal"><div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-title">apps/web · controlled shell</span></div><div class="terminal-body" id="terminalOutput"><span class="term-warning"># Command not started — approval required</span>
+
+<span class="term-command">pnpm vitest run src/lib/pricing.spec.ts</span></div></div></section>
+              <section class="content-card session-panel" data-panel="review"><header class="content-header"><div><h2>Final review</h2><p>Plain-language result, validation evidence, and follow-up readiness</p></div><span class="badge neutral" id="finalBadge">Pending</span></header><div class="review-content"><div class="review-callout"><svg class="icon"><use href="#check"></use></svg><div><h3 id="finalTitle">Waiting for a controlled outcome</h3><p id="finalText">The runtime will populate a structured result after the required approvals are resolved.</p></div></div><ul class="review-list"><li>Todos, approvals, tool events, and usage are retained for resume and audit.</li><li>Provider credentials, hidden prompts, and raw environment values are not present in the browser.</li><li id="reviewNext">Next step: approve, deny, or revise the proposed patch from the agent workspace.</li></ul></div></section>
+            </div>
+            <aside class="rail">
+              <section class="content-card rail-card"><h2>Run controls</h2><p id="railStatus">Run is paused at a required approval.</p><div style="margin-top:11px;"><button class="button primary" data-action="go-view" data-target="workspace">Open decision</button></div></section>
+              <section class="content-card rail-card"><h2>Audit integrity</h2><dl><dt>Event sequence</dt><dd>12</dd><dt>Replay state</dt><dd>Ready</dd><dt>Correlation</dt><dd>run_01H7…</dd><dt>Workspace</dt><dd>Bounded</dd></dl></section>
+              <section class="content-card rail-card"><h2>Need a summary?</h2><p>Use Statistics for aggregate performance and provider usage without exposing session content.</p><div style="margin-top:11px;"><button class="button ghost" data-action="go-view" data-target="reports">Open statistics</button></div></section>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="view page-view" data-view="archive" aria-label="Archived sessions">
+        <div class="page-frame">
+          <header class="page-header"><div><h1>Archived sessions</h1><p>Closed and paused work remains reviewable and can be resumed with preserved context.</p></div><div class="page-actions"><button class="button primary" data-action="open-new"><svg class="icon sm"><use href="#plus"></use></svg>New session</button></div></header>
+          <section class="content-card"><div class="archive-list">
+            <article class="archive-item"><div><h2>Audit checkout totals</h2><p>Paused after a policy denial · 2 todos completed · resume with a revised instruction</p></div><span class="archive-date badge warning">Paused · 22 Aug</span><button class="button" data-action="restore-archive">Resume</button></article>
+            <article class="archive-item"><div><h2>Restore address validation</h2><p>Completed · 3 files changed · 2 targeted checks passed</p></div><span class="archive-date badge success">Completed · 22 Aug</span><button class="button" data-action="show-complete-session">Review</button></article>
+            <article class="archive-item"><div><h2>Document cache retention policy</h2><p>Plan completed · no write actions requested</p></div><span class="archive-date badge info">Plan · 21 Aug</span><button class="button" data-action="restore-archive">Reopen</button></article>
+            <article class="archive-item"><div><h2>Payment API error mapping</h2><p>Cancelled by operator before tool actions began</p></div><span class="archive-date badge neutral">Cancelled · 20 Aug</span><button class="button" data-action="show-complete-session">Review</button></article>
+          </div></section>
+        </div>
+      </section>
+
+      <section class="view page-view" data-view="reports" aria-label="Statistics report">
+        <div class="page-frame">
+          <header class="page-header"><div><h1>Runtime statistics</h1><p>Management-friendly view of volume, safety decisions, quality signals, and estimated provider spend.</p></div><div class="report-controls" role="group" aria-label="Statistics period"><button class="range" data-action="range" data-range="7d">7 days</button><button class="range active" data-action="range" data-range="30d">30 days</button><button class="range" data-action="range" data-range="90d">90 days</button><button class="button" data-action="export"><svg class="icon sm"><use href="#external"></use></svg>Export</button></div></header>
+          <div class="metrics-grid">
+            <article class="metric-card"><div class="metric-label">Total runs</div><div class="metric-value" id="reportRuns">64</div><div class="metric-context good">↑ 12% period over period</div></article>
+            <article class="metric-card"><div class="metric-label">Completed with validation</div><div class="metric-value">78%</div><div class="metric-context">50 recorded outcomes</div></article>
+            <article class="metric-card"><div class="metric-label">Approval rate</div><div class="metric-value">84%</div><div class="metric-context">Writes and commands shown first</div></article>
+            <article class="metric-card"><div class="metric-label">Estimated provider cost</div><div class="metric-value" id="reportCost">$8.72</div><div class="metric-context">Within $15 team budget</div></article>
+          </div>
+          <div class="reports-grid">
+            <section class="content-card"><header class="content-header"><div><h2>Run volume and completion</h2><p>Completed sessions per weekday</p></div><span class="badge primary">30 days</span></header><div class="bar-chart" aria-label="Completed sessions bar chart"><div class="bar-column"><div class="bar" style="height:41%"></div><span>Mon</span></div><div class="bar-column"><div class="bar" style="height:64%"></div><span>Tue</span></div><div class="bar-column"><div class="bar" style="height:58%"></div><span>Wed</span></div><div class="bar-column"><div class="bar" style="height:76%"></div><span>Thu</span></div><div class="bar-column"><div class="bar" style="height:88%"></div><span>Fri</span></div><div class="bar-column"><div class="bar" style="height:33%"></div><span>Sat</span></div><div class="bar-column"><div class="bar" style="height:29%"></div><span>Sun</span></div></div><div class="bar-caption"><span>0</span><span>Weekly high: 18 completed</span></div></section>
+            <section class="content-card"><header class="content-header"><div><h2>Session outcomes</h2><p>Resolved state after the period</p></div></header><div class="donut-wrap"><div class="donut"><div class="donut-copy"><strong>64</strong><span>Total sessions</span></div></div></div><div class="legend"><div class="legend-item"><span class="legend-name"><i class="legend-dot" style="background:var(--success)"></i>Completed</span><strong>68%</strong></div><div class="legend-item"><span class="legend-name"><i class="legend-dot" style="background:var(--primary)"></i>In review</span><strong>19%</strong></div><div class="legend-item"><span class="legend-name"><i class="legend-dot" style="background:var(--warning)"></i>Paused or denied</span><strong>13%</strong></div></div></section>
+            <section class="content-card"><header class="content-header"><div><h2>Provider mix</h2><p>Profiles used in completed runs</p></div><button class="button ghost small" data-action="open-admin" data-admin-open="providers">Manage</button></header><div class="activity-list"><div class="activity-row"><span class="activity-icon"><svg class="icon sm"><use href="#layers"></use></svg></span><span class="activity-copy"><strong>DeepSeek Coder</strong><span>42 runs · primary controlled profile</span></span><span class="activity-time">66%</span></div><div class="activity-row"><span class="activity-icon info"><svg class="icon sm"><use href="#layers"></use></svg></span><span class="activity-copy"><strong>OpenCode Go</strong><span>15 runs · curated coding models</span></span><span class="activity-time">23%</span></div><div class="activity-row"><span class="activity-icon warning"><svg class="icon sm"><use href="#layers"></use></svg></span><span class="activity-copy"><strong>OpenRouter</strong><span>7 runs · enabled fallback routes</span></span><span class="activity-time">11%</span></div></div></section>
+            <section class="content-card"><header class="content-header"><div><h2>Safety signal</h2><p>Approval and policy outcomes</p></div></header><div class="review-content"><div class="review-callout"><svg class="icon"><use href="#shield"></use></svg><div><h3>Guardrails are doing their job</h3><p>All write and command actions were surfaced for an operator decision before execution.</p></div></div><ul class="review-list"><li>84% of approval requests were approved once.</li><li>10% were denied without a repeat request.</li><li>6% were cancelled or expired safely.</li></ul></div></section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-layer" id="newModal" aria-hidden="true">
+    <section class="modal small" role="dialog" aria-modal="true" aria-labelledby="newTitle">
+      <header class="modal-header"><div><h2 id="newTitle">Start a new session</h2><p>Create a controlled coding-agent task in a registered workspace.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close dialog"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <form class="modal-body form" id="newForm">
+        <div class="field"><label for="newTask">What should SharpAgent do?</label><textarea class="textarea" id="newTask" required>Identify why the focused pricing page test is flaky, make the smallest safe repair, and run the focused test.</textarea><span class="field-help">A clear outcome helps the agent create a bounded plan and accurate approval requests.</span></div>
+        <div class="form-grid"><div class="field"><label for="workspaceSelect">Workspace</label><select class="select" id="workspaceSelect"><option>storefront / apps/web</option><option>SharpAgent / backend</option></select></div><div class="field"><label for="profileSelect">Model profile</label><select class="select" id="profileSelect"><option>DeepSeek Coder · validated</option><option>OpenCode Go · validated</option><option>OpenRouter · plan only</option></select></div></div>
+        <div class="field"><label for="modeSelect">Run mode</label><select class="select" id="modeSelect"><option value="execute">Controlled execute — writes and commands request approval</option><option value="plan">Plan only — read and search without changes</option></select></div>
+        <div class="form-actions"><button type="button" class="button" data-action="close-modal">Cancel</button><button class="button primary" type="submit"><svg class="icon sm"><use href="#play"></use></svg>Start session</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="settingsModal" aria-hidden="true">
+    <section class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <aside class="settings-rail" aria-label="Administration categories">
+        <div class="settings-rail-title">Administration</div>
+        <div class="settings-group"><div class="settings-group-label">Interface</div><nav class="settings-nav"><button class="active" data-action="admin-category" data-category="general"><svg class="icon sm"><use href="#settings"></use></svg>General</button><button data-action="admin-category" data-category="appearance"><svg class="icon sm"><use href="#sun"></use></svg>Appearance</button></nav></div>
+        <div class="settings-group"><div class="settings-group-label">Agent control</div><nav class="settings-nav"><button data-action="admin-category" data-category="workspaces"><svg class="icon sm"><use href="#folder"></use></svg>Workspaces</button><button data-action="admin-category" data-category="policy"><svg class="icon sm"><use href="#shield"></use></svg>Policy & limits</button><button data-action="admin-category" data-category="runtime"><svg class="icon sm"><use href="#terminal"></use></svg>Runtime health</button></nav></div>
+        <div class="settings-group"><div class="settings-group-label">Models & providers</div><nav class="settings-nav"><button data-action="admin-category" data-category="providers"><svg class="icon sm"><use href="#layers"></use></svg>Providers</button><button data-action="admin-category" data-category="models"><svg class="icon sm"><use href="#spark"></use></svg>Model profiles</button></nav></div>
+        <div class="settings-version">SharpAgent Web<br>Prototype build 0.3</div>
+      </aside>
+      <div class="settings-main"><header class="settings-header"><h2 id="settingsTitle">General</h2><button class="icon-button" data-action="close-modal" aria-label="Close administration"><svg class="icon"><use href="#x"></use></svg></button></header><div class="settings-content" id="settingsContent"></div></div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="profileModal" aria-hidden="true">
+    <section class="modal small" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+      <header class="modal-header"><div><h2 id="profileTitle">Local profile</h2><p>Trusted-local MVP; authentication is intentionally not configured.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close profile"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <div class="modal-body"><div class="settings-card"><div class="settings-row"><span class="avatar" style="width:36px;height:36px">ZY</span><div class="settings-copy"><h3>ZiYang</h3><p>Local operator · Storefront workspace</p></div><span class="badge success">Trusted</span></div><div class="settings-row"><div class="settings-copy"><h3>Appearance</h3><p>Choose one of four persistent web themes.</p></div><button class="button" data-action="open-admin" data-admin-open="appearance">Change</button></div><div class="settings-row"><div class="settings-copy"><h3>Administration</h3><p>Configure providers, model profiles, workspace policy, and runtime health.</p></div><button class="button" data-action="open-admin">Open</button></div></div></div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="commandModal" aria-hidden="true">
+    <section class="modal small" role="dialog" aria-modal="true" aria-labelledby="commandTitle">
+      <header class="modal-header"><div><h2 id="commandTitle">Jump to</h2><p>Keyboard-friendly web-app navigation</p></div><button class="icon-button" data-action="close-modal" aria-label="Close command palette"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <div class="modal-body"><div class="command-list">
+        <button class="command-option" data-action="open-new"><svg class="icon"><use href="#plus"></use></svg><span><strong>New controlled session</strong><span>Create a bounded task and choose run mode</span></span><kbd>N</kbd></button>
+        <button class="command-option" data-action="go-view" data-target="workspace"><svg class="icon"><use href="#chat"></use></svg><span><strong>Open agent workspace</strong><span>Continue the active pricing task</span></span><kbd>A</kbd></button>
+        <button class="command-option" data-action="go-view" data-target="home"><svg class="icon"><use href="#home"></use></svg><span><strong>Open dashboard</strong><span>View recent sessions and summary metrics</span></span><kbd>H</kbd></button>
+        <button class="command-option" data-action="go-view" data-target="reports"><svg class="icon"><use href="#chart"></use></svg><span><strong>Open statistics</strong><span>View management-friendly runtime metrics</span></span><kbd>R</kbd></button>
+        <button class="command-option" data-action="open-admin"><svg class="icon"><use href="#settings"></use></svg><span><strong>Open administration</strong><span>Manage interface preferences and agent configuration</span></span><kbd>,</kbd></button>
+      </div></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><svg class="icon sm"><use href="#check"></use></svg><span id="toastText">Saved</span></div>
+
+  <script>
+    (function () {
+      var state = { view: "workspace", theme: "studio", stage: "patch", mode: "execute", details: true, admin: "general" };
+      var shell = document.getElementById("appShell");
+      var toast = document.getElementById("toast");
+      var toastText = document.getElementById("toastText");
+      var toastTimer;
+
+      function svg(id) {
+        return '<svg class="icon sm"><use href="#' + id + '"></use></svg>';
+      }
+      function notify(message) {
+        toastText.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2700);
+      }
+      function closeModals() {
+        document.querySelectorAll(".modal-layer.open").forEach(function (modal) {
+          modal.classList.remove("open");
+          modal.setAttribute("aria-hidden", "true");
+        });
+      }
+      function openModal(id) {
+        closeModals();
+        var modal = document.getElementById(id);
+        if (modal) {
+          modal.classList.add("open");
+          modal.setAttribute("aria-hidden", "false");
+          var focusable = modal.querySelector("button, input, textarea, select");
+          if (focusable) setTimeout(function () { focusable.focus(); }, 20);
+        }
+      }
+      function showView(view) {
+        var destination = document.querySelector('[data-view="' + view + '"]');
+        if (!destination) return;
+        state.view = view;
+        document.querySelectorAll(".view").forEach(function (section) { section.classList.toggle("active", section.getAttribute("data-view") === view); });
+        document.querySelectorAll("[data-nav]").forEach(function (button) { button.classList.toggle("active", button.getAttribute("data-nav") === view); });
+        document.querySelectorAll(".mode-switch button").forEach(function (button) {
+          var active = button.getAttribute("data-target") === view;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        closeModals();
+        shell.classList.remove("sidebar-open");
+        if (view !== "workspace") destination.scrollTop = 0;
+      }
+      function setTitle(title) {
+        var shortened = title.length > 58 ? title.slice(0, 55) + "…" : title;
+        document.getElementById("headerSession").textContent = shortened;
+        document.getElementById("workspaceTitle").textContent = shortened;
+        document.getElementById("activeTitle").textContent = shortened;
+        document.getElementById("reviewTitle").textContent = shortened;
+      }
+      function setTodo(id, status) {
+        var item = document.getElementById(id);
+        if (!item) return;
+        item.classList.remove("done", "working", "pending");
+        item.classList.add(status);
+        var dot = item.querySelector(".todo-dot");
+        if (dot) dot.innerHTML = status === "done" ? svg("check") : "";
+      }
+      function allTodos(one, two, three) {
+        setTodo("todoOne", one); setTodo("todoTwo", two); setTodo("todoThree", three);
+        setTodo("detailTodoOne", one); setTodo("detailTodoTwo", two); setTodo("detailTodoThree", three);
+      }
+      function setStage(stage) {
+        state.stage = stage;
+        var patch = document.getElementById("patchApproval");
+        var test = document.getElementById("testApproval");
+        var complete = document.getElementById("completeCard");
+        var denied = document.getElementById("denialOutcome");
+        var planTitle = document.getElementById("planTitle");
+        var planText = document.getElementById("planText");
+        var planBadge = document.getElementById("planBadge");
+        var homePending = document.getElementById("homePending");
+        var activeStatus = document.getElementById("activeStatus");
+        var reviewStatus = document.getElementById("reviewStatus");
+        var reviewIcon = document.getElementById("reviewIcon");
+        var patchEventTitle = document.getElementById("patchEventTitle");
+        var patchEventText = document.getElementById("patchEventText");
+        var testEvent = document.getElementById("testEvent");
+        var completeEvent = document.getElementById("completeEvent");
+        var changeBadge = document.getElementById("changeBadge");
+        var terminalBadge = document.getElementById("terminalBadge");
+        var finalBadge = document.getElementById("finalBadge");
+        var finalTitle = document.getElementById("finalTitle");
+        var finalText = document.getElementById("finalText");
+        var reviewNext = document.getElementById("reviewNext");
+        var railStatus = document.getElementById("railStatus");
+        var terminal = document.getElementById("terminalOutput");
+        var toolCalls = document.getElementById("toolCalls");
+
+        patch.hidden = stage !== "patch";
+        test.hidden = stage !== "test";
+        complete.hidden = stage !== "complete";
+        denied.hidden = stage !== "denied-patch" && stage !== "denied-test" && stage !== "plan";
+        testEvent.hidden = stage !== "test" && stage !== "complete" && stage !== "denied-test";
+        completeEvent.hidden = stage !== "complete";
+
+        if (stage === "patch") {
+          allTodos("done", "working", "pending");
+          planTitle.textContent = "Plan ready — awaiting controlled action";
+          planText.textContent = "1 completed, 1 pending approval, 1 queued validation";
+          planBadge.textContent = "In progress"; planBadge.className = "badge primary";
+          homePending.textContent = "1"; activeStatus.className = "session-status running";
+          reviewStatus.textContent = "In progress · awaiting approval to apply a focused patch";
+          reviewIcon.className = "summary-icon"; reviewIcon.innerHTML = svg("clock");
+          patchEventTitle.textContent = "Patch approval requested";
+          patchEventText.textContent = "A focused write to pricing.ts and pricing.spec.ts is waiting for a one-time decision.";
+          changeBadge.textContent = "Proposed"; changeBadge.className = "badge warning";
+          terminalBadge.textContent = "Awaiting approval"; terminalBadge.className = "badge neutral";
+          finalBadge.textContent = "Pending"; finalBadge.className = "badge neutral";
+          finalTitle.textContent = "Waiting for a controlled outcome";
+          finalText.textContent = "The runtime will populate a structured result after the required approvals are resolved.";
+          reviewNext.textContent = "Next step: approve, deny, or revise the proposed patch from the agent workspace.";
+          railStatus.textContent = "Run is paused at a required approval.";
+          terminal.innerHTML = '<span class="term-warning"># Command not started — approval required</span>\n\n<span class="term-command">pnpm vitest run src/lib/pricing.spec.ts</span>';
+          toolCalls.textContent = "3 of 40";
+        }
+        if (stage === "test") {
+          allTodos("done", "done", "working");
+          planTitle.textContent = "Patch applied — validation queued";
+          planText.textContent = "2 completed, focused test waiting for separate approval";
+          planBadge.textContent = "1 approval left"; planBadge.className = "badge warning";
+          homePending.textContent = "1"; activeStatus.className = "session-status running";
+          reviewStatus.textContent = "In progress · patch applied, test command awaiting approval";
+          reviewIcon.className = "summary-icon"; reviewIcon.innerHTML = svg("clock");
+          patchEventTitle.textContent = "Patch approved and applied";
+          patchEventText.textContent = "Only the reviewed files were changed in the registered workspace.";
+          changeBadge.textContent = "Applied"; changeBadge.className = "badge success";
+          terminalBadge.textContent = "Approval required"; terminalBadge.className = "badge warning";
+          finalBadge.textContent = "Validation pending"; finalBadge.className = "badge warning";
+          finalTitle.textContent = "Patch applied; focused test remains controlled";
+          finalText.textContent = "The next proposed action is a single bounded test command. It will not run until you approve it.";
+          reviewNext.textContent = "Next step: approve or deny the focused pricing test command.";
+          railStatus.textContent = "Patch applied. Test command awaits a separate decision.";
+          terminal.innerHTML = '<span class="term-warning"># Command queued — second approval required</span>\n\n<span class="term-command">pnpm vitest run src/lib/pricing.spec.ts</span>';
+          toolCalls.textContent = "4 of 40";
+        }
+        if (stage === "complete") {
+          allTodos("done", "done", "done");
+          planTitle.textContent = "Run completed — review ready";
+          planText.textContent = "All 3 todos completed with focused validation evidence";
+          planBadge.textContent = "Complete"; planBadge.className = "badge success";
+          homePending.textContent = "0"; activeStatus.className = "session-status complete";
+          reviewStatus.textContent = "Completed · focused patch applied and pricing test passed";
+          reviewIcon.className = "summary-icon done"; reviewIcon.innerHTML = svg("check");
+          patchEventTitle.textContent = "Patch approved and applied";
+          patchEventText.textContent = "Only the reviewed files were changed in the registered workspace.";
+          changeBadge.textContent = "Applied"; changeBadge.className = "badge success";
+          terminalBadge.textContent = "Passed"; terminalBadge.className = "badge success";
+          finalBadge.textContent = "Complete"; finalBadge.className = "badge success";
+          finalTitle.textContent = "Small repair, verified outcome";
+          finalText.textContent = "The decimal normaliser now handles comma separators and the focused pricing test passed.";
+          reviewNext.textContent = "Suggested follow-up: run the wider suite only if you want broader confidence.";
+          railStatus.textContent = "Run completed safely. The audit, diff, and validation result are retained.";
+          terminal.innerHTML = '<span class="term-command">$ pnpm vitest run src/lib/pricing.spec.ts</span>\n\n<span class="term-good"> ✓ src/lib/pricing.spec.ts (6 tests) 118ms</span>\n\n<span class="term-good"> Test Files  1 passed (1)</span>\n<span class="term-good">      Tests  6 passed (6)</span>\n<span class="term-good">   Duration  1.24s</span>';
+          toolCalls.textContent = "5 of 40";
+        }
+        if (stage === "denied-patch" || stage === "denied-test" || stage === "plan") {
+          var patchDenied = stage === "denied-patch";
+          var planOnly = stage === "plan";
+          allTodos("done", patchDenied || planOnly ? "pending" : "done", "pending");
+          planTitle.textContent = planOnly ? "Plan completed — no changes requested" : "Run paused safely";
+          planText.textContent = planOnly ? "The task remains read/search only until an Execute session is started" : "The denied action will not be retried without a revised instruction";
+          planBadge.textContent = planOnly ? "Plan only" : "Paused safely"; planBadge.className = "badge warning";
+          homePending.textContent = "0"; activeStatus.className = "session-status paused";
+          reviewStatus.textContent = planOnly ? "Plan complete · no side-effecting actions permitted" : "Paused · operator denied a proposed controlled action";
+          reviewIcon.className = "summary-icon"; reviewIcon.innerHTML = svg("shield");
+          patchEventTitle.textContent = patchDenied ? "Patch approval denied" : "Patch applied";
+          patchEventText.textContent = patchDenied ? "No files were written. The agent will not loop on the denied action." : "Only the reviewed files were changed in the registered workspace.";
+          changeBadge.textContent = patchDenied || planOnly ? "Not applied" : "Applied"; changeBadge.className = patchDenied || planOnly ? "badge neutral" : "badge success";
+          terminalBadge.textContent = "Not run"; terminalBadge.className = "badge neutral";
+          finalBadge.textContent = planOnly ? "Plan complete" : "Paused"; finalBadge.className = "badge warning";
+          finalTitle.textContent = planOnly ? "Read-only plan captured" : "No unapproved action was performed";
+          finalText.textContent = planOnly ? "The agent can read and search but cannot write or execute commands in plan-only mode." : "The decision is recorded in the audit trail. You can provide a narrower or different instruction to continue.";
+          reviewNext.textContent = "Next step: send a revised instruction from the agent workspace, or archive this session.";
+          railStatus.textContent = planOnly ? "Plan mode completed without a sensitive action." : "Run paused safely after the operator decision.";
+          document.getElementById("denialTitle").textContent = planOnly ? "Plan-only session completed without changes" : patchDenied ? "Patch was denied — no files changed" : "Test command was denied — patch remains reviewable";
+          document.getElementById("denialText").textContent = planOnly ? "The selected mode prevents writes and commands. Start a controlled execute session to act on the plan." : patchDenied ? "The write proposal was recorded as denied. SharpAgent will not repeat it without your revised instruction." : "The validation command was not run. The approved patch remains visible for review.";
+          terminal.innerHTML = '<span class="term-warning"># Validation command was not run — no active approval</span>';
+          toolCalls.textContent = patchDenied || planOnly ? "3 of 40" : "4 of 40";
+        }
+      }
+      function setMode(mode) {
+        state.mode = mode;
+        document.getElementById("modeLabel").textContent = mode === "plan" ? "Plan only" : "Controlled execute";
+        document.getElementById("reviewMode").textContent = mode === "plan" ? "Plan" : "Execute";
+      }
+      function scrollChat() {
+        var scroller = document.getElementById("messageScroller");
+        setTimeout(function () { scroller.scrollTop = scroller.scrollHeight; }, 20);
+      }
+      function submitTask(text) {
+        if (!text) return;
+        document.getElementById("taskMessage").textContent = text;
+        document.getElementById("agentTime").textContent = "Just now";
+        setTitle(text);
+        setStage(state.mode === "plan" ? "plan" : "patch");
+        notify(state.mode === "plan" ? "Plan captured. No write or command action will be proposed." : "Instruction captured. A focused approval is ready for review.");
+        scrollChat();
+      }
+      function themeCard(theme, name, detail) {
+        return '<button class="theme-card" data-action="theme" data-theme-choice="' + theme + '"><div class="theme-preview"><div class="preview-side"></div><div class="preview-main"><div class="preview-line"></div><div class="preview-line accent"></div><div class="preview-line"></div></div></div><strong>' + name + '</strong><span>' + detail + '</span></button>';
+      }
+      function settingsMarkup(category) {
+        var content = {
+          general:
+            '<p class="settings-intro">Interface preferences apply to this trusted local prototype. Safety decisions remain inside the application boundary.</p><div class="settings-card">' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Ask before sensitive actions</h3><p>Writes, commands, moves, installs, publishing, and external access remain governed by policy.</p></div><button class="switch on" data-action="switch" aria-label="Ask before sensitive actions"><span></span></button></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Show concise activity summaries</h3><p>Display safe status and tool summaries, never private model reasoning.</p></div><button class="switch on" data-action="switch" aria-label="Show concise activity summaries"><span></span></button></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Command shell</h3><p>Selected by the application-managed workspace executor.</p></div><button class="button">Auto (default) ' + svg("chevron") + '</button></div></div>' +
+            '<div class="settings-card"><div class="settings-row"><div class="settings-copy"><h3>Keyboard shortcuts</h3><p>Command palette, new session, and sidebar controls are accessible without leaving the web app.</p></div><button class="button" data-action="open-command">View shortcuts</button></div></div>',
+          appearance:
+            '<p class="settings-intro">Select a visual theme for the responsive web interface. The preference is stored locally and applies immediately.</p><div class="theme-grid">' +
+            themeCard("studio", "Studio", "Light, neutral, focused") + themeCard("midnight", "Midnight", "Low-light coding workspace") + themeCard("ocean", "Ocean", "Cool and restrained") + themeCard("forest", "Forest", "Calm, natural contrast") +
+            '</div><div class="settings-card" style="margin-top:13px"><div class="settings-row"><div class="settings-copy"><h3>Compact navigation</h3><p>Use a collapsed sidebar on larger viewports. On tablet it becomes a responsive drawer.</p></div><button class="switch" data-action="switch" aria-label="Compact navigation"><span></span></button></div></div>',
+          workspaces:
+            '<p class="settings-intro">Only registered roots can be provided to workspace tools. The browser never sends a raw filesystem command for execution.</p><div class="settings-card">' +
+            '<div class="settings-row"><div class="settings-copy"><h3>storefront / apps/web</h3><p>C:\\MyProjects\\SharpAgent\\apps\\web · registered and available</p></div><span class="badge success">Ready</span><button class="button small">Edit</button></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>SharpAgent / backend</h3><p>C:\\MyProjects\\SharpAgent\\backend · registered and available</p></div><span class="badge success">Ready</span><button class="button small">Edit</button></div></div><button class="button primary" data-action="workspace-added">' + svg("plus") + 'Register workspace</button>',
+          policy:
+            '<p class="settings-intro">Policies provide a second protection layer around the agent harness. The runtime retains its own decision record even when a framework exposes similar controls.</p><div class="settings-card">' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Read and search in boundary</h3><p>Allow inside registered roots; resolve canonical paths before every filesystem action.</p></div><span class="badge success">Allow</span></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Write, patch, and test command</h3><p>Show exact preview and require a single-use operator approval.</p></div><span class="badge warning">Approve once</span></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Delete, install, publish, commit, push, and network tools</h3><p>Disabled in the controlled MVP policy profile.</p></div><span class="badge" style="color:var(--danger);background:var(--danger-soft)">Deny</span></div></div>' +
+            '<div class="settings-card"><div class="settings-row"><div class="settings-copy"><h3>Run limits</h3><p>40 tool calls · 20 minutes · $2.00 estimated cost · 10 minute approval expiry</p></div><button class="button">Edit limits</button></div></div>',
+          runtime:
+            '<p class="settings-intro">Health is exposed without credentials or unrestricted environment details. This is a management-friendly readiness view, not a secret store.</p><div class="settings-card">' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Application service</h3><p>ASP.NET application and SSE event stream</p></div><span class="badge success">Healthy</span></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>SQLite session store</h3><p>Session state, append-only audit events, changes, usage, and approvals</p></div><span class="badge success">Healthy</span></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Workspace executor</h3><p>In-boundary worktree or container selection; outbound network blocked by default</p></div><span class="badge success">Ready</span></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>Provider readiness</h3><p>2 validated profiles available; one plan-only route needs validation</p></div><span class="badge warning">Attention</span></div></div><button class="button" data-action="refresh-runtime">' + svg("refresh") + 'Refresh health</button>',
+          providers:
+            '<p class="settings-intro">Provider adapters turn provider-specific streaming and tool-call formats into one application-safe contract. Secrets stay server-side.</p><div class="provider-list">' +
+            '<div class="provider-row"><div class="provider-icon">' + svg("code") + '</div><div><h3>OpenCode Go</h3><p>Curated coding models · endpoint style selected per model</p></div><span class="badge success">Validated</span><button class="button small" data-action="validate-provider">Configure</button></div>' +
+            '<div class="provider-row"><div class="provider-icon">' + svg("spark") + '</div><div><h3>DeepSeek</h3><p>Primary coding profile · streaming and tool handling checked</p></div><span class="badge success">Validated</span><button class="button small" data-action="validate-provider">Configure</button></div>' +
+            '<div class="provider-row"><div class="provider-icon">' + svg("layers") + '</div><div><h3>OpenRouter</h3><p>Optional routed models · automatic fallback remains off</p></div><span class="badge warning">Needs validation</span><button class="button small" data-action="validate-provider">Validate</button></div></div>',
+          models:
+            '<p class="settings-intro">Only enabled and validated profiles can be selected for controlled execution. Availability is shown before a session starts.</p><div class="settings-card">' +
+            '<div class="settings-row"><div class="settings-copy"><h3>DeepSeek Coder</h3><p>Primary execute profile · streaming, tools, and usage normalisation verified</p></div><span class="badge success">Enabled</span><button class="button small">Edit</button></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>OpenCode Go curated</h3><p>Execute profile · capability-routed coding models</p></div><span class="badge success">Enabled</span><button class="button small">Edit</button></div>' +
+            '<div class="settings-row"><div class="settings-copy"><h3>OpenRouter planning</h3><p>Plan only until a non-destructive validation succeeds</p></div><span class="badge warning">Gated</span><button class="button small">Validate</button></div></div><button class="button primary" data-action="profile-added">' + svg("plus") + 'Add model profile</button>'
+        };
+        return content[category] || content.general;
+      }
+      function categoryTitle(category) {
+        return { general: "General", appearance: "Appearance", workspaces: "Workspaces", policy: "Policy & limits", runtime: "Runtime health", providers: "Providers", models: "Model profiles" }[category] || "General";
+      }
+      function renderSettings(category) {
+        state.admin = category || state.admin;
+        document.getElementById("settingsTitle").textContent = categoryTitle(state.admin);
+        document.getElementById("settingsContent").innerHTML = settingsMarkup(state.admin);
+        document.querySelectorAll("[data-category]").forEach(function (button) { button.classList.toggle("active", button.getAttribute("data-category") === state.admin); });
+        document.querySelectorAll(".theme-card").forEach(function (card) { card.classList.toggle("active", card.getAttribute("data-theme-choice") === state.theme); });
+      }
+      function applyTheme(theme) {
+        state.theme = theme;
+        document.body.setAttribute("data-theme", theme);
+        try { localStorage.setItem("sharpagent-theme", theme); } catch (error) {}
+        document.querySelectorAll(".theme-card").forEach(function (card) { card.classList.toggle("active", card.getAttribute("data-theme-choice") === theme); });
+        notify("Theme changed to " + theme.charAt(0).toUpperCase() + theme.slice(1));
+      }
+      function switchTab(tab) {
+        document.querySelectorAll("[data-panel]").forEach(function (panel) { panel.classList.toggle("active", panel.getAttribute("data-panel") === tab); });
+        document.querySelectorAll("[data-tab]").forEach(function (button) { button.classList.toggle("active", button.getAttribute("data-tab") === tab); });
+      }
+      document.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-action]");
+        if (!button) return;
+        var action = button.getAttribute("data-action");
+        if (action === "toggle-sidebar") {
+          if (window.innerWidth <= 900) shell.classList.toggle("sidebar-open");
+          else shell.classList.toggle("sidebar-collapsed");
+        }
+        if (action === "close-mobile-sidebar") shell.classList.remove("sidebar-open");
+        if (action === "go-view") showView(button.getAttribute("data-target"));
+        if (action === "open-new") openModal("newModal");
+        if (action === "close-modal") closeModals();
+        if (action === "open-profile") openModal("profileModal");
+        if (action === "open-command") openModal("commandModal");
+        if (action === "open-admin") {
+          var requested = button.getAttribute("data-admin-open");
+          if (requested) state.admin = requested;
+          openModal("settingsModal");
+          renderSettings(state.admin);
+        }
+        if (action === "admin-category") renderSettings(button.getAttribute("data-category"));
+        if (action === "theme") applyTheme(button.getAttribute("data-theme-choice"));
+        if (action === "switch") { button.classList.toggle("on"); notify(button.classList.contains("on") ? "Preference enabled" : "Preference disabled"); }
+        if (action === "toggle-details") {
+          state.details = !state.details;
+          document.getElementById("conversationLayout").classList.toggle("details-hidden", !state.details);
+          document.getElementById("detailsButton").classList.toggle("active", state.details);
+        }
+        if (action === "toggle-mode") { setMode(state.mode === "execute" ? "plan" : "execute"); notify(state.mode === "plan" ? "Plan-only mode selected. Writes and commands remain unavailable." : "Controlled execution selected. Sensitive actions need approval."); }
+        if (action === "choose-model") notify("Select or validate model profiles in Administration → Model profiles.");
+        if (action === "attach") notify("Attachment selection is represented in this prototype; use registered workspace context in the product.");
+        if (action === "approve-patch") { setStage("test"); notify("Patch approved once and applied. The focused test awaits separate approval."); scrollChat(); }
+        if (action === "deny-patch") { setStage("denied-patch"); notify("Patch denied. No files were changed."); scrollChat(); }
+        if (action === "approve-test") { setStage("complete"); notify("Focused test completed successfully."); scrollChat(); }
+        if (action === "deny-test") { setStage("denied-test"); notify("Test command denied. The patch remains available for review."); scrollChat(); }
+        if (action === "show-session") { showView("session"); switchTab("activity"); }
+        if (action === "show-complete-session") { setStage("complete"); showView("session"); switchTab("review"); }
+        if (action === "restore-archive") { setTitle("Audit checkout totals"); setStage("denied-patch"); document.getElementById("taskMessage").textContent = "Review checkout total discrepancies and propose a bounded repair."; showView("workspace"); notify("Archived session restored with preserved audit context."); }
+        if (action === "tab") switchTab(button.getAttribute("data-tab"));
+        if (action === "range") {
+          document.querySelectorAll("[data-range]").forEach(function (item) { item.classList.toggle("active", item === button); });
+          var range = button.getAttribute("data-range");
+          document.getElementById("reportRuns").textContent = range === "7d" ? "18" : range === "90d" ? "171" : "64";
+          document.getElementById("reportCost").textContent = range === "7d" ? "$2.18" : range === "90d" ? "$24.36" : "$8.72";
+          notify("Statistics updated for the selected period.");
+        }
+        if (action === "export") notify("Export prepared as a management summary in this prototype.");
+        if (action === "validate-provider") notify("A non-destructive profile validation would be queued; secrets are never displayed.");
+        if (action === "refresh-runtime") notify("Health refreshed: application, SQLite, executor, and 2 provider profiles are ready.");
+        if (action === "workspace-added") notify("Workspace registration dialog would open here.");
+        if (action === "profile-added") notify("Model profile registration dialog would open here.");
+      });
+      document.getElementById("promptForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var input = document.getElementById("promptInput");
+        var text = input.value.trim();
+        if (!text) { notify("Write an instruction first."); input.focus(); return; }
+        submitTask(text);
+        input.value = "";
+      });
+      document.getElementById("newForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var task = document.getElementById("newTask").value.trim();
+        if (!task) { notify("Add a task before starting the session."); return; }
+        setMode(document.getElementById("modeSelect").value);
+        closeModals();
+        showView("workspace");
+        submitTask(task);
+        document.getElementById("promptInput").value = "";
+      });
+      document.addEventListener("keydown", function (event) {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openModal("commandModal"); }
+        if (event.key === "Escape") { closeModals(); shell.classList.remove("sidebar-open"); }
+      });
+      try {
+        var saved = localStorage.getItem("sharpagent-theme");
+        if (saved && ["studio", "midnight", "ocean", "forest"].indexOf(saved) !== -1) state.theme = saved;
+      } catch (error) {}
+      document.body.setAttribute("data-theme", state.theme);
+      setStage("patch");
+      renderSettings("general");
+    }());
+  </script>
+</body>
+</html>

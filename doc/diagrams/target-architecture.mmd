@@ -1,0 +1,38 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#E8F0FF',
+  'primaryTextColor': '#0F172A',
+  'primaryBorderColor': '#2563EB',
+  'lineColor': '#64748B',
+  'secondaryColor': '#EDE9FE',
+  'tertiaryColor': '#F0FDF4',
+  'fontFamily': 'Arial'
+}}}%%
+flowchart LR
+    user([Developer]) --> ui[React web app<br/>Vite · TypeScript · shadcn]
+    ui --> api[.NET 10 API<br/>streaming session API]
+    api -. status stream .-> ui
+    api --> agent[Microsoft Agent Framework<br/>Harness + workflow]
+    agent --> policy[Policy & approval<br/>human confirmation]
+    policy --> tools[Workspace tools<br/>read · patch · search · test]
+    agent --> router[Provider adapter<br/>capability-aware routing]
+    router --> go[OpenCode Go]
+    router --> deepseek[DeepSeek]
+    router --> openrouter[OpenRouter]
+    tools --> workspace[Disposable worktree<br/>or isolated container]
+    api --> data[(SQLite<br/>sessions · audit · configuration)]
+    agent --> telemetry[Telemetry<br/>quality · cost · reliability]
+    tools --> telemetry
+    telemetry -. optional export later .-> cloud[Azure hosting / monitoring]
+
+    classDef experience fill:#E8F0FF,stroke:#2563EB,stroke-width:2px,color:#0F172A;
+    classDef agentLayer fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#0F172A;
+    classDef safety fill:#F0FDF4,stroke:#16A34A,stroke-width:2px,color:#0F172A;
+    classDef provider fill:#ECFEFF,stroke:#0891B2,stroke-width:2px,color:#0F172A;
+    classDef workspace fill:#FFF7ED,stroke:#EA580C,stroke-width:2px,color:#0F172A;
+    classDef data fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#0F172A;
+    class user,ui,api experience;
+    class agent,policy agentLayer;
+    class router,go,deepseek,openrouter provider;
+    class tools,workspace,telemetry workspace;
+    class data safety;
+    class cloud provider;

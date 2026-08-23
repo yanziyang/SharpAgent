@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#E8F0FF',
+  'primaryTextColor': '#0F172A',
+  'primaryBorderColor': '#2563EB',
+  'lineColor': '#64748B',
+  'fontFamily': 'Arial'
+}}}%%
+sequenceDiagram
+    participant D as Developer
+    participant UI as React UI
+    participant A as .NET + MAF Harness
+    participant P as Policy gate
+    participant W as Isolated workspace
+    participant L as Selected LLM
+
+    D->>UI: Describe coding task
+    UI->>A: Start or resume session
+    A->>L: Ask for plan and next action
+    L-->>A: Read/search/test tool request
+    A->>P: Check policy and approval requirement
+    P-->>A: Allow, ask, or deny
+    A->>W: Execute permitted action
+    W-->>A: Code, diff, or test output
+    A->>L: Feed back concise result
+    loop Until task is complete or a limit is reached
+        L-->>A: Next action or final response
+    end
+    A-->>UI: Stream progress, approvals, and result
+    UI-->>D: Review diff and outcome

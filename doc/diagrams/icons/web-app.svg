@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Web application</title>
+  <rect width="64" height="64" rx="16" fill="#E8F0FF"/>
+  <rect x="12" y="15" width="40" height="34" rx="5" fill="#2563EB"/>
+  <path d="M12 24h40" stroke="#fff" stroke-width="2.5"/>
+  <circle cx="18" cy="19.5" r="1.6" fill="#fff"/>
+  <circle cx="23" cy="19.5" r="1.6" fill="#fff"/>
+  <path d="M22 32l-4 5 4 5M30 42l4-10M42 32l4 5-4 5" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
+</svg>

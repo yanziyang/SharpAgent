@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 730" role="img" aria-labelledby="title desc">
+  <title id="title">Indicative delivery roadmap</title>
+  <desc id="desc">Four phased roadmap for the SharpAgent initiative, starting with technical validation and ending with controlled scale readiness.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#F8FAFC"/><stop offset="1" stop-color="#F5F3FF"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0F172A" flood-opacity=".12"/></filter>
+    <style>
+      .title{font:700 32px Arial,sans-serif;fill:#0F172A}.subtitle{font:400 16px Arial,sans-serif;fill:#475569}.lane{stroke:#CBD5E1;stroke-width:12;stroke-linecap:round}.phase{filter:url(#shadow)}.num{font:700 13px Arial,sans-serif;fill:#fff;text-anchor:middle}.phase-title{font:700 19px Arial,sans-serif;fill:#0F172A;text-anchor:middle}.phase-time{font:600 14px Arial,sans-serif;fill:#2563EB;text-anchor:middle}.phase-copy{font:400 13px Arial,sans-serif;fill:#475569;text-anchor:middle}.gate{font:700 12px Arial,sans-serif;fill:#166534;text-anchor:middle}.note{font:400 13px Arial,sans-serif;fill:#64748B;text-anchor:middle}
+    </style>
+  </defs>
+  <rect width="1600" height="730" fill="url(#bg)"/>
+  <text x="70" y="68" class="title">Indicative delivery roadmap</text>
+  <text x="70" y="98" class="subtitle">A phased approach reduces provider, usability, and safety risk before a broader rollout.</text>
+  <path d="M190 340H1410" class="lane"/>
+  <path d="M190 340H1410" fill="none" stroke="#2563EB" stroke-opacity=".16" stroke-width="3" stroke-dasharray="4 12" stroke-linecap="round"/>
+
+  <g class="phase" transform="translate(240 340)">
+    <circle r="72" fill="#E8F0FF"/><circle r="64" fill="none" stroke="#2563EB" stroke-opacity=".3"/>
+    <circle cy="-3" r="25" fill="#2563EB"/><path d="M0-22v38M-19-3h38" stroke="#fff" stroke-linecap="round" stroke-width="4"/>
+    <circle cx="-46" cy="-46" r="16" fill="#2563EB"/><text x="-46" y="-41" class="num">0</text>
+    <text y="-108" class="phase-title">Technical validation</text><text y="-85" class="phase-time">2 weeks</text><text y="104" class="phase-copy">Validate providers, streaming,</text><text y="123" class="phase-copy">tool calling, and cost capture</text>
+  </g>
+  <g class="phase" transform="translate(610 340)">
+    <circle r="72" fill="#EDE9FE"/><circle r="64" fill="none" stroke="#7C3AED" stroke-opacity=".32"/>
+    <path d="M-26 4a26 26 0 1 1 52 0v15A17 17 0 0 1 9 36H-9a17 17 0 0 1-17-17z" fill="#7C3AED"/><circle cx="-10" cy="7" r="3.5" fill="#fff"/><circle cx="10" cy="7" r="3.5" fill="#fff"/><path d="M-12-22v-9M12-22v-9M0 36v9" stroke="#7C3AED" stroke-linecap="round" stroke-width="4"/>
+    <circle cx="-46" cy="-46" r="16" fill="#7C3AED"/><text x="-46" y="-41" class="num">1</text>
+    <text y="-108" class="phase-title">Controlled MVP</text><text y="-85" class="phase-time">6–8 weeks</text><text y="104" class="phase-copy">React UI, MAF, SQLite,</text><text y="123" class="phase-copy">workspace tools, approval flow</text>
+  </g>
+  <g class="phase" transform="translate(980 340)">
+    <circle r="72" fill="#FFF7ED"/><circle r="64" fill="none" stroke="#EA580C" stroke-opacity=".32"/>
+    <circle cy="-16" r="15" fill="#EA580C"/><path d="M-30 36c4-20 16-30 30-30s26 10 30 30" fill="#EA580C"/><path d="M-24 20h48" stroke="#fff" stroke-linecap="round" stroke-width="3"/>
+    <circle cx="-46" cy="-46" r="16" fill="#EA580C"/><text x="-46" y="-41" class="num">2</text>
+    <text y="-108" class="phase-title">Pilot</text><text y="-85" class="phase-time">6–8 weeks</text><text y="104" class="phase-copy">Selected users and repositories;</text><text y="123" class="phase-copy">measure quality, cost, adoption</text>
+  </g>
+  <g class="phase" transform="translate(1350 340)">
+    <circle r="72" fill="#F0FDF4"/><circle r="64" fill="none" stroke="#16A34A" stroke-opacity=".32"/>
+    <path d="M0-36 30-24v18c0 20-12 32-30 38C-18 26-30 14-30-6v-18z" fill="#16A34A"/><path d="m-14-3 9 9L16-15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"/>
+    <circle cx="-46" cy="-46" r="16" fill="#16A34A"/><text x="-46" y="-41" class="num">3</text>
+    <text y="-108" class="phase-title">Harden &amp; scale</text><text y="-85" class="phase-time">8–12 weeks</text><text y="104" class="phase-copy">Isolation, monitoring, support,</text><text y="123" class="phase-copy">and shared deployment readiness</text>
+  </g>
+
+  <g transform="translate(425 520)"><path d="m0-16 16 16L0 16-16 0z" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/><text y="5" class="gate">GO</text><text y="42" class="note">Provider contract proven</text></g>
+  <g transform="translate(795 520)"><path d="m0-16 16 16L0 16-16 0z" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/><text y="5" class="gate">GO</text><text y="42" class="note">Safe MVP is usable</text></g>
+  <g transform="translate(1165 520)"><path d="m0-16 16 16L0 16-16 0z" fill="#DCFCE7" stroke="#16A34A" stroke-width="2"/><text y="5" class="gate">GO</text><text y="42" class="note">Pilot evidence supports rollout</text></g>
+  <text x="800" y="650" class="note">Indicative effort: approximately 5–7 months for a small cross-functional team; longer if staffed by one or two engineers.</text>
+</svg>

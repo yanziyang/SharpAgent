@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Observability</title>
+  <rect width="64" height="64" rx="16" fill="#FFF7ED"/>
+  <path d="M17 47V18M17 47h31" fill="none" stroke="#D97706" stroke-linecap="round" stroke-width="3"/>
+  <path d="m22 40 8-9 7 5 9-13" fill="none" stroke="#D97706" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+  <circle cx="22" cy="40" r="2.5" fill="#F59E0B"/>
+  <circle cx="30" cy="31" r="2.5" fill="#F59E0B"/>
+  <circle cx="37" cy="36" r="2.5" fill="#F59E0B"/>
+  <circle cx="46" cy="23" r="2.5" fill="#F59E0B"/>
+</svg>

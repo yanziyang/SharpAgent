@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Isolated workspace</title>
+  <rect width="64" height="64" rx="16" fill="#FFF7ED"/>
+  <path d="M12 25h18l4 5h18v20H12z" fill="#EA580C"/>
+  <path d="M12 25v-5h17l4 5" fill="#FB923C"/>
+  <path d="M24 37l-4 4 4 4M31 45l4-8M42 37l4 4-4 4" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"/>
+</svg>

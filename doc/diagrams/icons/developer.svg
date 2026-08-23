@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Developer</title>
+  <rect width="64" height="64" rx="16" fill="#E8F0FF"/>
+  <circle cx="32" cy="24" r="10" fill="#2563EB"/>
+  <path d="M14 53c2.8-11 9-16 18-16s15.2 5 18 16" fill="#2563EB"/>
+  <path d="M23 24c2.3 2.1 5.3 3.2 9 3.2s6.7-1.1 9-3.2" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2.5"/>
+</svg>

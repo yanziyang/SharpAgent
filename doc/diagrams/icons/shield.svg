@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Policy and approval</title>
+  <rect width="64" height="64" rx="16" fill="#F0FDF4"/>
+  <path d="M32 13 49 20v11c0 11.8-7.2 18.5-17 22-9.8-3.5-17-10.2-17-22V20z" fill="#16A34A"/>
+  <path d="m24 32 5.2 5.2L40.5 26" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.2"/>
+</svg>

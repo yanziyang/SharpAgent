@@ -1,0 +1,20 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#E8F0FF',
+  'primaryTextColor': '#0F172A',
+  'primaryBorderColor': '#2563EB',
+  'lineColor': '#64748B',
+  'fontFamily': 'Arial'
+}}}%%
+flowchart LR
+    p0[0 · Technical validation<br/>2 weeks] --> p1[1 · Controlled MVP<br/>6–8 weeks]
+    p1 --> p2[2 · Pilot<br/>6–8 weeks]
+    p2 --> p3[3 · Harden and scale<br/>8–12 weeks]
+    p0 --- d0[Confirm provider streaming,<br/>tool calls, and cost telemetry]
+    p1 --- d1[React UI, sessions, workspace tools,<br/>manual approval, SQLite]
+    p2 --- d2[Selected users, real repositories,<br/>evaluation and support process]
+    p3 --- d3[Isolation, operational controls,<br/>shared deployment readiness]
+
+    classDef phase fill:#E8F0FF,stroke:#2563EB,stroke-width:2px,color:#0F172A;
+    classDef outcome fill:#F8FAFC,stroke:#CBD5E1,stroke-width:1px,color:#334155;
+    class p0,p1,p2,p3 phase;
+    class d0,d1,d2,d3 outcome;

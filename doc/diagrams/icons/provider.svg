@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Model provider</title>
+  <rect width="64" height="64" rx="16" fill="#ECFEFF"/>
+  <path d="M18 43h28a8 8 0 0 0 1.5-15.9A13 13 0 0 0 23.2 29 7 7 0 0 0 18 43z" fill="#0891B2"/>
+  <path d="m34 20 2.2 6.8H43l-5.5 4 2.1 6.7L34 33.4l-5.6 4.1 2.2-6.7-5.6-4h6.9z" fill="#FDE047"/>
+</svg>
