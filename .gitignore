@@ -38,9 +38,24 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
+.env.local
+.env.*.local
 
 # Local LLM credentials (never commit)
 LLM-Key.md
+
+# Node / web tooling (workspace root)
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
+
+# Quality gate outputs
+artifacts/
 
 # Others
 ~$*

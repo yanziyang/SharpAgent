@@ -1,0 +1,9 @@
+<Project>
+  <!-- Test-project overrides. Imports the repo-root props explicitly because nested
+       Directory.Build.props files replace (not merge) their parent. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)..\'))" />
+  <PropertyGroup>
+    <!-- CA1707: snake_case test method names are the deliberate xUnit convention here. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+</Project>

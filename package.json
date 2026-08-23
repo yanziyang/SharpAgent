@@ -1,0 +1,9 @@
+{
+  "name": "sharpagent",
+  "private": true,
+  "description": "SharpAgent workspace: frontend app plus browser test packages.",
+  "workspaces": [
+    "src/frontend/sharpagent-web",
+    "tests/web-e2e"
+  ]
+}

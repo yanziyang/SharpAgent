@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared deterministic test doubles and fixtures for all automated test projects.
+       Depends only on Application/Domain so it can never leak infrastructure types. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\backend\SharpAgent.Application\SharpAgent.Application.csproj" />
+  </ItemGroup>
+</Project>
