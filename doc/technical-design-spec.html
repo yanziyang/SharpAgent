@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Human-readable technical design for SharpAgent, a controlled web-based AI coding agent.">
+  <title>SharpAgent — Technical Design Specification</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --body: #334155;
+      --muted: #64748b;
+      --line: #dbe4f0;
+      --paper: #ffffff;
+      --canvas: #f4f7fb;
+      --navy: #0f172a;
+      --blue: #2563eb;
+      --blue-soft: #eaf2ff;
+      --violet: #7c3aed;
+      --violet-soft: #f0ebff;
+      --cyan: #0891b2;
+      --cyan-soft: #e8fbff;
+      --green: #15803d;
+      --green-soft: #eaf9ef;
+      --orange: #c2410c;
+      --orange-soft: #fff3e8;
+      --red: #b91c1c;
+      --red-soft: #fff0f0;
+      --shadow: 0 18px 52px rgba(15, 23, 42, .10);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--body);
+      background: var(--canvas);
+      font: 15px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+    a { color: #1d4ed8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .report { max-width: 1240px; margin: 0 auto; padding: 28px 22px 64px; }
+    .shell { overflow: hidden; border: 1px solid var(--line); background: var(--paper); box-shadow: var(--shadow); }
+    .masthead {
+      position: relative;
+      overflow: hidden;
+      padding: 58px 64px 52px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 92% 16%, rgba(96, 165, 250, .52), transparent 27%),
+        radial-gradient(circle at 70% 100%, rgba(167, 139, 250, .42), transparent 32%),
+        linear-gradient(135deg, #0b1224 0%, #173a83 56%, #312e81 100%);
+    }
+    .masthead::after {
+      position: absolute;
+      top: -230px;
+      right: -140px;
+      width: 460px;
+      height: 460px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 50%;
+      box-shadow: 0 0 0 56px rgba(255,255,255,.06), 0 0 0 112px rgba(255,255,255,.035);
+      content: "";
+    }
+    .eyebrow {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 13px;
+      color: #bfdbfe;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, h4 { color: var(--ink); line-height: 1.15; }
+    h1 {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 0;
+      color: #fff;
+      font-size: clamp(34px, 5vw, 58px);
+      letter-spacing: -.047em;
+    }
+    .lede {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: 19px 0 0;
+      color: #dbeafe;
+      font-size: 18px;
+      line-height: 1.58;
+    }
+    .meta {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 25px;
+      margin-top: 30px;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+    .meta strong { color: #fff; }
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      padding: 15px 64px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .top-nav a { color: var(--muted); }
+    section { padding: 47px 64px; border-bottom: 1px solid var(--line); }
+    section:last-child { border-bottom: 0; }
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h2 { margin: 0; font-size: 29px; letter-spacing: -.032em; }
+    h3 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    h4 { margin: 0; font-size: 14px; }
+    p { margin: 11px 0; }
+    .intro { max-width: 860px; color: #475569; font-size: 17px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: #1e3a8a;
+      background: #dbeafe;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .pill::before { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); content: ""; }
+    .decision {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 22px;
+      margin-top: 28px;
+    }
+    .decision-main {
+      padding: 27px;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, #eff6ff, #fbfdff);
+    }
+    .decision-main h3 { color: #1e3a8a; font-size: 23px; }
+    .decision-status {
+      display: grid;
+      place-items: center;
+      min-height: 188px;
+      padding: 26px;
+      border-radius: var(--radius);
+      color: #14532d;
+      background: linear-gradient(145deg, #f0fdf4, #dcfce7);
+      text-align: center;
+    }
+    .decision-status strong { display: block; font-size: 23px; }
+    .decision-status span { display: block; max-width: 250px; margin-top: 7px; color: #166534; font-size: 13px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; margin-top: 25px; }
+    .stat {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .stat .num { display: block; color: var(--blue); font-size: 25px; font-weight: 850; letter-spacing: -.04em; }
+    .stat .label { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .architecture {
+      display: grid;
+      grid-template-columns: 1.08fr .18fr 1.32fr .18fr .82fr;
+      align-items: center;
+      gap: 10px;
+      margin-top: 28px;
+    }
+    .arch-stack { display: grid; gap: 10px; }
+    .arch-box {
+      min-height: 88px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, .04);
+    }
+    .arch-box.blue { border-color: #b8d6ff; background: var(--blue-soft); }
+    .arch-box.violet { border-color: #d6c6ff; background: var(--violet-soft); }
+    .arch-box.cyan { border-color: #b8eef5; background: var(--cyan-soft); }
+    .arch-box.green { border-color: #bde6ca; background: var(--green-soft); }
+    .arch-box.orange { border-color: #f3c89e; background: var(--orange-soft); }
+    .arch-icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--blue);
+      font-weight: 850;
+    }
+    .violet .arch-icon { background: var(--violet); }
+    .cyan .arch-icon { background: var(--cyan); }
+    .green .arch-icon { background: var(--green); }
+    .orange .arch-icon { background: var(--orange); }
+    .arch-box strong { display: block; color: var(--ink); font-size: 14px; }
+    .arch-box span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.42; }
+    .arch-arrow { position: relative; height: 2px; background: #9db5dc; }
+    .arch-arrow::after {
+      position: absolute;
+      top: -4px;
+      right: -1px;
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 7px solid #6e8fc2;
+      content: "";
+    }
+    .arch-center { display: grid; gap: 10px; }
+    .arch-center .arch-box { min-height: 74px; }
+    .provider-row { display: grid; gap: 10px; }
+    .provider-pill {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .provider-pill i { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); }
+    .provider-pill small { margin-left: auto; color: var(--muted); font-size: 10px; font-weight: 650; }
+    .callout {
+      display: flex;
+      gap: 12px;
+      margin-top: 22px;
+      padding: 16px 18px;
+      border: 1px solid #c7d8f8;
+      border-radius: 13px;
+      background: #f4f8ff;
+    }
+    .callout-mark {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--blue);
+      font-weight: 850;
+    }
+    .callout strong { display: block; color: #1e3a8a; }
+    .callout p { margin: 3px 0 0; color: #475569; font-size: 13px; }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: stretch;
+      gap: 0;
+      margin-top: 28px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .flow-step {
+      position: relative;
+      min-height: 173px;
+      padding: 20px 17px;
+      border-right: 1px solid var(--line);
+    }
+    .flow-step:last-child { border-right: 0; }
+    .flow-step::after {
+      position: absolute;
+      z-index: 1;
+      top: 50%;
+      right: -7px;
+      width: 12px;
+      height: 12px;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      background: #fff;
+      transform: translateY(-50%) rotate(45deg);
+      content: "";
+    }
+    .flow-step:last-child::after { display: none; }
+    .flow-step .n {
+      display: inline-grid;
+      place-items: center;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--blue);
+      font-size: 11px;
+      font-weight: 850;
+    }
+    .flow-step:nth-child(2) .n { background: var(--violet); }
+    .flow-step:nth-child(3) .n { background: var(--orange); }
+    .flow-step:nth-child(4) .n { background: var(--cyan); }
+    .flow-step:nth-child(5) .n { background: var(--green); }
+    .flow-step h3 { margin-top: 13px; font-size: 14px; }
+    .flow-step p { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.48; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 27px; }
+    .card {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #fff;
+    }
+    .card p { color: var(--muted); font-size: 13px; }
+    .card ul { padding-left: 19px; margin: 12px 0 0; }
+    .card li { margin: 6px 0; font-size: 13px; }
+    .card.safe { border-color: #bde6ca; background: linear-gradient(145deg, #fbfffc, #effcf3); }
+    .card.risk { border-color: #f3c89e; background: linear-gradient(145deg, #fffefd, #fff6ee); }
+    .card.violet { border-color: #d8ccfb; background: linear-gradient(145deg, #fdfcff, #f5f1ff); }
+    .table-wrap { margin-top: 25px; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    th { color: #334155; background: #f8fafc; font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    td { color: #475569; font-size: 13px; }
+    td strong { color: var(--ink); }
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #1e3a8a;
+      background: #dbeafe;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .tag.safe { color: #166534; background: #dcfce7; }
+    .tag.warn { color: #9a3412; background: #ffedd5; }
+    .tag.deny { color: #991b1b; background: #fee2e2; }
+    .trust {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 27px;
+      padding: 16px;
+      border: 1px dashed #9db5dc;
+      border-radius: 16px;
+      background: #fbfdff;
+    }
+    .trust-zone { padding: 21px; border-radius: 12px; }
+    .trust-zone.browser { border: 1px solid #c9d9f6; background: #f0f6ff; }
+    .trust-zone.server { border: 1px solid #d8ccfb; background: #f6f3ff; }
+    .trust-zone h3 { font-size: 16px; }
+    .trust-zone p { color: var(--muted); font-size: 13px; }
+    .boundary {
+      display: inline-block;
+      margin-top: 9px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      color: #1e3a8a;
+      background: #dbeafe;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .boundary.server { color: #5b21b6; background: #ede9fe; }
+    .mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-top: 24px; }
+    .mini {
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+    }
+    .mini strong { display: block; color: var(--ink); font-size: 14px; }
+    .mini span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .route-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-top: 24px; }
+    .route {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fff;
+    }
+    .route code { color: #1e3a8a; font-size: 12px; font-weight: 800; }
+    .route span { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 27px; }
+    .phase { position: relative; padding: 23px 20px 20px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .phase .phase-num {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--blue);
+      font-size: 13px;
+      font-weight: 850;
+    }
+    .phase:nth-child(2) .phase-num { background: var(--violet); }
+    .phase:nth-child(3) .phase-num { background: var(--green); }
+    .phase h3 { margin-top: 15px; font-size: 17px; }
+    .phase p { color: var(--muted); font-size: 13px; }
+    .phase .exit { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: #334155; font-size: 12px; }
+    .source-list { padding-left: 19px; margin: 22px 0 0; }
+    .source-list li { margin: 8px 0; color: var(--muted); font-size: 13px; }
+    .footer {
+      padding: 27px 64px;
+      color: #64748b;
+      background: #f8fafc;
+      font-size: 12px;
+    }
+    .footer strong { color: #334155; }
+    @media (max-width: 980px) {
+      .masthead, section { padding-right: 34px; padding-left: 34px; }
+      .top-nav, .footer { padding-right: 34px; padding-left: 34px; }
+      .architecture { grid-template-columns: 1fr; }
+      .arch-arrow { width: 2px; height: 26px; margin: 0 auto; }
+      .arch-arrow::after { top: auto; right: -4px; bottom: -1px; border-top: 7px solid #6e8fc2; border-right: 5px solid transparent; border-bottom: 0; border-left: 5px solid transparent; }
+      .provider-row { grid-template-columns: repeat(3, 1fr); }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step { min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+      .flow-step:last-child { border-bottom: 0; }
+      .flow-step::after { top: auto; right: auto; bottom: -7px; left: 50%; transform: translateX(-50%) rotate(135deg); }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .route-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .report { padding: 0; }
+      .shell { border: 0; }
+      .masthead, section { padding: 34px 22px; }
+      .top-nav, .footer { padding: 15px 22px; }
+      .decision, .two-col, .trust, .roadmap { grid-template-columns: 1fr; }
+      .stat-grid, .mini-grid, .route-grid, .provider-row { grid-template-columns: 1fr; }
+      h1 { font-size: 36px; }
+      h2 { font-size: 25px; }
+      .lede { font-size: 16px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .report { max-width: none; padding: 0; }
+      .shell { border: 0; box-shadow: none; }
+      .top-nav { display: none; }
+      section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="report">
+    <article class="shell">
+      <header class="masthead">
+        <p class="eyebrow">Implementation baseline · controlled MVP</p>
+        <h1>SharpAgent technical design</h1>
+        <p class="lede">A practical build blueprint for a web-based AI coding agent: a modern React experience over a .NET service that applies policy, preserves an audit trail, isolates coding work, and uses Microsoft Agent Framework behind a stable application boundary.</p>
+        <div class="meta">
+          <span><strong>Version:</strong> 1.0</span>
+          <span><strong>Date:</strong> 23 August 2026</span>
+          <span><strong>Audience:</strong> Delivery team, technical sponsors, coding agents</span>
+          <span><strong>Companion:</strong> <a href="technical-design-spec.md" style="color:#dbeafe">Implementation Markdown</a></span>
+        </div>
+      </header>
+
+      <nav class="top-nav" aria-label="Document sections">
+        <a href="#decision">Decision</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#control-loop">Control loop</a>
+        <a href="#safety">Safety boundary</a>
+        <a href="#data">Data and events</a>
+        <a href="#experience">Web experience</a>
+        <a href="#delivery">Delivery gates</a>
+      </nav>
+
+      <section id="decision">
+        <p class="kicker">Recommended implementation decision</p>
+        <h2>Build the controlled MVP as one bounded service, not as a free-form autonomous agent</h2>
+        <p class="intro">The design uses Microsoft Agent Framework for long-running agent behavior, while SharpAgent itself controls every consequential action. The result preserves the useful coding-agent experience shown in the prototype without allowing a browser or model to bypass the application’s guardrails.</p>
+        <div class="decision">
+          <div class="decision-main">
+            <h3>What the delivery team builds</h3>
+            <p>A React web application provides the conversation-first workspace, approvals, change review, dashboards, settings, themes, and tablet-responsive experience. A .NET 10 backend persists durable session facts in SQLite, streams updates over SSE, routes models through adapters, and runs controlled work in an isolated environment.</p>
+            <p>The core decision is deliberate: MAF is the agent engine, while SharpAgent retains product ownership of policy, fingerprints, workspace validation, cancellation, audit records, and recovery.</p>
+          </div>
+          <div class="decision-status">
+            <div>
+              <strong>Feasible with controls</strong>
+              <span>Recommended for a trusted-local MVP, with implementation validation before pilot use.</span>
+            </div>
+          </div>
+        </div>
+        <div class="stat-grid" aria-label="Design summary">
+          <div class="stat"><span class="num">1</span><span class="label">Active run allowed per session</span></div>
+          <div class="stat"><span class="num">3</span><span class="label">Provider adapters behind one contract</span></div>
+          <div class="stat"><span class="num">0</span><span class="label">Provider secrets permitted in browser storage</span></div>
+          <div class="stat"><span class="num">4</span><span class="label">Responsive visual themes in the web UI</span></div>
+        </div>
+      </section>
+
+      <section id="architecture">
+        <p class="kicker">Target architecture</p>
+        <h2>One clear control point between the browser, models, and repository</h2>
+        <p class="intro">The application service is the trust boundary. It owns the live session, applies decisions, and writes the audit record before the UI sees a change.</p>
+        <div class="architecture" aria-label="Target architecture diagram">
+          <div class="arch-stack">
+            <div class="arch-box blue">
+              <div class="arch-icon">UI</div>
+              <strong>React web application</strong>
+              <span>Vite, strict TypeScript, React Router, shadcn/ui and Tailwind CSS 4.</span>
+            </div>
+            <div class="arch-box blue">
+              <div class="arch-icon">SSE</div>
+              <strong>Live session experience</strong>
+              <span>REST commands and queries; replayable Server-Sent Events for activity.</span>
+            </div>
+          </div>
+          <div class="arch-arrow" aria-hidden="true"></div>
+          <div class="arch-center">
+            <div class="arch-box violet">
+              <div class="arch-icon">API</div>
+              <strong>SharpAgent application service</strong>
+              <span>Sessions, idempotency, policy, approvals, audit history, usage and health.</span>
+            </div>
+            <div class="arch-box violet">
+              <div class="arch-icon">MAF</div>
+              <strong>Agent runtime adapter</strong>
+              <span>Harness, plans, todos, context handling, streaming and canonical event translation.</span>
+            </div>
+          </div>
+          <div class="arch-arrow" aria-hidden="true"></div>
+          <div class="arch-stack">
+            <div class="arch-box cyan">
+              <div class="arch-icon">AI</div>
+              <strong>Provider adapters</strong>
+              <span>Capability-aware, secret-safe adapters for selected profiles.</span>
+            </div>
+            <div class="provider-row" aria-label="Providers">
+              <div class="provider-pill"><i></i>OpenCode Go <small>profile-driven</small></div>
+              <div class="provider-pill"><i></i>DeepSeek <small>primary coding</small></div>
+              <div class="provider-pill"><i></i>OpenRouter <small>validated gate</small></div>
+            </div>
+            <div class="arch-box green">
+              <div class="arch-icon">WS</div>
+              <strong>Controlled workspace executor</strong>
+              <span>Isolated worktree or container, scoped file tools and focused commands.</span>
+            </div>
+            <div class="arch-box orange">
+              <div class="arch-icon">DB</div>
+              <strong>SQLite with EF Core</strong>
+              <span>Sessions, ordered events, approvals, changes, usage and settings.</span>
+            </div>
+          </div>
+        </div>
+        <div class="callout">
+          <div class="callout-mark">!</div>
+          <div>
+            <strong>Important boundary</strong>
+            <p>MAF is deliberately hidden behind an application interface. This allows the team to adopt the Harness capabilities that prove reliable without making UI, persistence, policy, or provider decisions dependent on a framework detail.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="control-loop">
+        <p class="kicker">Controlled execution loop</p>
+        <h2>The agent can propose work; only the application can authorize and perform it</h2>
+        <p class="intro">The interaction looks conversational to the developer, but every consequential action follows a durable decision path.</p>
+        <div class="flow" aria-label="Controlled agent execution flow">
+          <div class="flow-step">
+            <span class="n">01</span>
+            <h3>Start a session</h3>
+            <p>The developer chooses a registered workspace, validated model profile, mode and tighter limits where needed.</p>
+          </div>
+          <div class="flow-step">
+            <span class="n">02</span>
+            <h3>Plan and inspect</h3>
+            <p>The Harness produces visible todos and can use approved in-boundary read/search actions.</p>
+          </div>
+          <div class="flow-step">
+            <span class="n">03</span>
+            <h3>Evaluate proposal</h3>
+            <p>SharpAgent evaluates a normalized patch or command against policy, boundaries and run limits.</p>
+          </div>
+          <div class="flow-step">
+            <span class="n">04</span>
+            <h3>Approve once</h3>
+            <p>Sensitive work pauses until an operator approves, denies or cancels one exact fingerprinted action.</p>
+          </div>
+          <div class="flow-step">
+            <span class="n">05</span>
+            <h3>Review evidence</h3>
+            <p>Bounded output, diffs, validation results, usage, outcome and next step are retained for review.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="safety">
+        <p class="kicker">Trust and safety design</p>
+        <h2>The browser can request work, but cannot reach the repository or providers directly</h2>
+        <p class="intro">The design converts the prototype’s visible approval and recovery controls into enforceable server-side rules. It is intended to make unsafe behavior difficult by construction, not merely inconvenient in the UI.</p>
+        <div class="trust">
+          <div class="trust-zone browser">
+            <h3>Browser-side responsibility</h3>
+            <p>Render tasks, plans, streaming activity, approval previews, diffs, terminal summaries, dashboard metrics, settings and recovery choices. Send typed commands with an idempotency key.</p>
+            <span class="boundary">Never: secrets, raw shell, filesystem, direct provider calls</span>
+          </div>
+          <div class="trust-zone server">
+            <h3>Server-side responsibility</h3>
+            <p>Validate paths and profiles, control the run lifecycle, calculate fingerprints, persist audit facts, execute bounded tools, resolve secrets, normalize providers and emit safe SSE events.</p>
+            <span class="boundary server">Owns: policy, approvals, workspace, persistence, recovery</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Action category</th><th>Default decision</th><th>What makes it safe</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Read/list/search inside workspace</strong></td><td><span class="tag safe">Allow</span></td><td>Canonical path validation, boundary check, bounded output.</td></tr>
+              <tr><td><strong>Patch or write file</strong></td><td><span class="tag warn">Approve once</span></td><td>Named change set, affected paths, deterministic fingerprint, isolated worktree.</td></tr>
+              <tr><td><strong>Focused test or shell command</strong></td><td><span class="tag warn">Approve once</span></td><td>Structured executable/arguments, worktree-only directory, timeout and output cap.</td></tr>
+              <tr><td><strong>Delete, install, publish, commit or push</strong></td><td><span class="tag deny">Deny</span></td><td>Not part of the controlled MVP command catalog.</td></tr>
+              <tr><td><strong>Network access from a workspace tool</strong></td><td><span class="tag deny">Deny</span></td><td>Outbound network disabled by default; provider adapters are separate server-side paths.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="two-col">
+          <div class="card safe">
+            <h3>Approval is an enforceable permit</h3>
+            <p>Every approval is tied to a specific run, action type, resolved paths, patch or command contents, execution environment and policy version. The server re-checks the fingerprint and expiry immediately before execution.</p>
+            <ul>
+              <li>Single use and active-run scoped</li>
+              <li>Expires using server time</li>
+              <li>Cannot be replayed after a changed patch or command</li>
+              <li>Cancellation invalidates pending approvals</li>
+            </ul>
+          </div>
+          <div class="card risk">
+            <h3>Isolation is not optional</h3>
+            <p>Command allowlists alone are not a sandbox. Slice 0 chooses and proves an isolated environment, preferably a disposable Git worktree; a least-privilege, network-disabled container is the alternative.</p>
+            <ul>
+              <li>Original checkout is treated as a read-only baseline</li>
+              <li>Agent patch is retained as reviewable diff evidence</li>
+              <li>Process tree, time and output are bounded</li>
+              <li>Traversal and escaping symbolic links are denied before action</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="data">
+        <p class="kicker">Durable session and event design</p>
+        <h2>SQLite stores the facts that let a session survive refresh, interruption, and resume</h2>
+        <p class="intro">The live stream never becomes the system of record. The service commits state and an ordered audit event first; SSE subscribers receive those committed facts second.</p>
+        <div class="mini-grid">
+          <div class="mini"><strong>Session</strong><span>Task, workspace, mode, selected profile, archive state and active run reference.</span></div>
+          <div class="mini"><strong>Agent run</strong><span>One attempt, sequence, execution environment, context summary, stop reason and final summary.</span></div>
+          <div class="mini"><strong>Audit event</strong><span>Append-only ordered record of status, policy, approvals, tools, changes and outcome.</span></div>
+          <div class="mini"><strong>Approval request</strong><span>Immutable preview, fingerprint, expiry, decision and consumption status.</span></div>
+          <div class="mini"><strong>Change set</strong><span>Files, hashes, bounded diffs and testable review evidence for a run worktree.</span></div>
+          <div class="mini"><strong>Usage record</strong><span>Provider, model profile, token/cost data when supplied, latency and compaction count.</span></div>
+        </div>
+        <div class="callout">
+          <div class="callout-mark">↻</div>
+          <div>
+            <strong>Recovery by reconstruction</strong>
+            <p>The implementation does not serialize framework session objects as long-term product data. On resume it creates a new run and a new MAF session from the persisted task, compacted context, todos, approvals, changes and safe summaries. Previous runs stay immutable.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Event rule</th><th>Implementation outcome</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Ordered</strong></td><td>Every session event receives a monotonic sequence. The stream ID is the durable sequence.</td></tr>
+              <tr><td><strong>Replayable</strong></td><td>Reconnect uses Last-Event-ID. A gap causes a session projection refresh before reconnect.</td></tr>
+              <tr><td><strong>Safe</strong></td><td>Events expose concise intent, scope, result and error summaries; never hidden reasoning, keys, raw provider payloads or unrestricted environment values.</td></tr>
+              <tr><td><strong>Idempotent commands</strong></td><td>State-changing requests require a key; retries return the original outcome or a conflict, not duplicate work.</td></tr>
+              <tr><td><strong>Bounded concurrency</strong></td><td>A transactional run lease prevents more than one active run per session in the one-service MVP.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="experience">
+        <p class="kicker">React web experience</p>
+        <h2>The production UI preserves the prototype’s coding-agent feel while making server state authoritative</h2>
+        <p class="intro">The visual reference is a browser application with a conversation-first agent workspace, not a desktop clone. It uses React Router, shadcn/ui components, Tailwind CSS 4 and strict TypeScript.</p>
+        <div class="route-grid" aria-label="Required routes">
+          <div class="route"><code>/</code><span>Dashboard, recent sessions and summary metrics</span></div>
+          <div class="route"><code>/sessions/new</code><span>Workspace, task, mode, profile and tighter limits</span></div>
+          <div class="route"><code>/sessions/:id</code><span>Task, activity, todos, approvals, usage and controls</span></div>
+          <div class="route"><code>/sessions/:id/changes</code><span>Focused diff and changed-file review</span></div>
+          <div class="route"><code>/sessions/archive</code><span>Archived sessions retained for review and restoration</span></div>
+          <div class="route"><code>/settings/*</code><span>Workspaces, models, policy/limits and runtime health</span></div>
+        </div>
+        <div class="two-col">
+          <div class="card violet">
+            <h3>Visible behavior carried forward</h3>
+            <ul>
+              <li>Plan/Execute mode and visible todos</li>
+              <li>Patch and focused-test approvals with expiry and fingerprint metadata</li>
+              <li>Cancel, archive and resume with optional follow-up</li>
+              <li>Context-compaction, provider-error, limit and stream-interruption states</li>
+              <li>Diff, terminal, activity and final-review views</li>
+              <li>Dashboard, statistics, administration and four persistent themes</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Key production differences from the prototype</h3>
+            <ul>
+              <li>All session facts come from typed API projections and SSE events.</li>
+              <li>Local storage holds only theme and non-sensitive layout preferences.</li>
+              <li>Buttons display pending state but await server confirmation for safety/outcome changes.</li>
+              <li>Model validation and execution eligibility are server decisions, never UI-only logic.</li>
+              <li>Responsive details/navigation become accessible sheets at tablet widths.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="delivery">
+        <p class="kicker">Delivery gates and quality</p>
+        <h2>Deliver in proof-oriented slices, with the hardest safety assumptions verified first</h2>
+        <p class="intro">The plan avoids building a polished interface on unproven agent, provider or workspace behavior. Each slice has an explicit exit test.</p>
+        <div class="roadmap">
+          <div class="phase">
+            <div class="phase-num">0</div>
+            <h3>Technical validation</h3>
+            <p>Prove the isolated workspace mechanism, all requested provider adapters, MAF Plan mode/todos, SSE, SQLite audit events, read/search tools, health and usage.</p>
+            <div class="exit"><strong>Exit:</strong> a validated profile plans a real repository task and survives refresh with no side effect.</div>
+          </div>
+          <div class="phase">
+            <div class="phase-num">1</div>
+            <h3>Controlled MVP</h3>
+            <p>Deliver the React routes, Execute mode, policy/approval service, patch/test flows, replay, cancellation, archive/resume, diff/review, reporting and settings.</p>
+            <div class="exit"><strong>Exit:</strong> a trusted developer completes a small isolated-worktree change with approval and validation evidence.</div>
+          </div>
+          <div class="phase">
+            <div class="phase-num">2</div>
+            <h3>Pilot hardening</h3>
+            <p>Improve isolation and degraded-provider behavior, add operational metrics/retention, document deployment/backup, and evaluate optional explicit fallback.</p>
+            <div class="exit"><strong>Exit:</strong> pilot evidence supports decisions on wider use, authentication and a future server database.</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Quality gate</th><th>Evidence required before MVP completion</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Plan-only safety</strong></td><td>Automated test proves no write, patch or side-effecting shell tool can execute.</td></tr>
+              <tr><td><strong>Approval integrity</strong></td><td>Patch and test each require distinct approval; expired, replayed or changed actions are rejected.</td></tr>
+              <tr><td><strong>Workspace isolation</strong></td><td>Traversal, foreign absolute path and escaping symbolic-link tests fail before filesystem action.</td></tr>
+              <tr><td><strong>Provider gate</strong></td><td>Unvalidated or incapable profiles cannot Execute; smoke validation records safe capability results.</td></tr>
+              <tr><td><strong>Recovery</strong></td><td>Refresh/restart retains ordered history; interrupted session creates a new linked run on resume.</td></tr>
+              <tr><td><strong>Privacy</strong></td><td>API, SSE, browser storage, logs and errors contain no configured secret value.</td></tr>
+              <tr><td><strong>Experience</strong></td><td>Critical approval/cancel/resume flows pass keyboard and tablet-width end-to-end tests.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="decisions">
+        <p class="kicker">Open implementation choices</p>
+        <h2>Choices deliberately deferred until there is evidence</h2>
+        <p class="intro">The design is firm about safety boundaries and delivery outcomes, while leaving framework/package and isolation details open until the team has tested them in the actual target environment.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Decision</th><th>Default position</th><th>Resolve by</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Exact MAF package versions and flags</strong></td><td>Pin after Slice 0 Harness proof; isolate experimental coding-adjacent features.</td><td>Before Slice 1</td></tr>
+              <tr><td><strong>Worktree versus container</strong></td><td>Prefer disposable Git worktree; choose container where risk/environment demands it.</td><td>Slice 0</td></tr>
+              <tr><td><strong>Focused command catalog</strong></td><td>Start with a small approved test/status catalog, not a general terminal.</td><td>Slice 1 start</td></tr>
+              <tr><td><strong>Secret store</strong></td><td>Local environment or OS-backed secret source; SQLite stores references only.</td><td>Deployment setup</td></tr>
+              <tr><td><strong>SQLite backup and retention</strong></td><td>Document local backup and audit retention before pilot deployment.</td><td>Before pilot</td></tr>
+              <tr><td><strong>Authentication</strong></td><td>Not included; blocks shared or Internet-facing deployment.</td><td>Before broader rollout</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="references">
+        <p class="kicker">Source material</p>
+        <h2>Design inputs and framework references</h2>
+        <ul class="source-list">
+          <li><a href="functional-spec.html">SharpAgent Functional Specification</a> — product scope, API requirements, data model and acceptance scenarios.</li>
+          <li><a href="../prototype(html)/index.html">SharpAgent HTML Prototype</a> — approved user-facing workflows, themes and responsive UI intent.</li>
+          <li><a href="SharpAgent-Feasibility-Report.html">SharpAgent Feasibility Report</a> — management rationale, architecture direction and risk framing.</li>
+          <li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework overview</a> — agents, Harness, sessions, middleware and workflows.</li>
+          <li><a href="https://learn.microsoft.com/en-us/agent-framework/concepts/harness">Microsoft Agent Framework Harness</a> — Harness composition, context, tools, approval and streaming concepts.</li>
+          <li><a href="https://learn.microsoft.com/en-us/agent-framework/get-started/harness">Microsoft Agent Framework Harness getting started</a> — session-based, streamed Harness usage.</li>
+        </ul>
+      </section>
+
+      <footer class="footer">
+        <strong>SharpAgent technical design.</strong> This is a controlled MVP design for trusted-local use. It is not authorization to expose the application to an untrusted network or to enable autonomous workspace actions.
+      </footer>
+    </article>
+  </main>
+</body>
+</html>

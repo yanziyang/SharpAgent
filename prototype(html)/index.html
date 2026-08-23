@@ -409,10 +409,23 @@
     .approval-detail small { display: block; margin-bottom: 3px; color: var(--subtle); font-size: 10px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
     .approval-detail strong { color: var(--text); font-size: 12px; font-weight: 650; }
     .approval-preview { margin: 0 14px 13px; padding: 10px; overflow-x: auto; border: 1px solid var(--border); border-radius: 7px; color: var(--code); background: var(--surface-muted); font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+    .approval-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 0 14px 13px; color: var(--subtle); font-size: 10px; }
+    .approval-meta code { padding: 2px 5px; border-radius: 4px; color: var(--code); background: var(--surface-soft); }
     .approval-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 14px 14px; }
     .safe-outcome { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 21px 38px; padding: 12px; border-radius: 10px; color: var(--info); background: var(--info-soft); }
     .safe-outcome strong { display: block; color: var(--text); font-size: 12px; }
     .safe-outcome p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .issue-card { display: flex; align-items: flex-start; gap: 11px; margin: 0 0 21px 38px; padding: 14px; border: 1px solid var(--border); border-radius: 11px; color: var(--text); background: var(--surface-muted); }
+    .issue-card.error { border-color: #e8aaa4; background: var(--danger-soft); }
+    .issue-card.warning { border-color: #e7ca99; background: var(--warning-soft); }
+    body[data-theme="midnight"] .issue-card.error { border-color: #7b403d; }
+    body[data-theme="midnight"] .issue-card.warning { border-color: #6d5126; }
+    .issue-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--danger); background: var(--surface); flex: 0 0 auto; }
+    .issue-card.warning .issue-icon { color: var(--warning); }
+    .issue-copy { min-width: 0; flex: 1; }
+    .issue-copy h2 { margin: 0; color: var(--text); font-size: 13px; }
+    .issue-copy p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .issue-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
     .complete-card { margin: 2px 0 22px 38px; padding: 15px; border: 1px solid #a5d6b7; border-radius: 11px; background: var(--success-soft); }
     body[data-theme="midnight"] .complete-card { border-color: #337952; }
     .complete-heading { display: flex; align-items: flex-start; gap: 10px; }
@@ -600,6 +613,20 @@
     .input:focus, .select:focus, .textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus); }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .control-stack { display: grid; gap: 9px; }
+    .control-option { display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 9px; color: var(--muted); background: var(--surface); text-align: left; }
+    .control-option:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-muted); }
+    .control-option strong { display: block; color: var(--text); font-size: 12px; }
+    .control-option span { display: block; margin-top: 2px; color: var(--subtle); font-size: 11px; }
+    .control-option .icon { color: var(--primary); margin-top: 1px; }
+    .control-option.danger .icon { color: var(--danger); }
+    .control-option.warning .icon { color: var(--warning); }
+    .modal-note { display: flex; align-items: flex-start; gap: 8px; padding: 10px 11px; border-radius: 8px; color: var(--muted); background: var(--surface-muted); font-size: 11px; }
+    .modal-note .icon { color: var(--info); }
+    .validation-steps { display: grid; gap: 9px; margin: 14px 0; }
+    .validation-step { display: flex; align-items: center; gap: 9px; padding: 9px 0; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+    .validation-step:last-child { border-bottom: 0; }
+    .validation-step .badge { margin-left: auto; }
 
     .settings-modal { display: grid; grid-template-columns: 244px minmax(0, 1fr); width: min(100%, 1060px); max-height: min(750px, calc(100dvh - 40px)); }
     .settings-rail { display: flex; flex-direction: column; min-width: 0; padding: 17px 12px; overflow-y: auto; border-right: 1px solid var(--border); background: var(--surface-muted); }
@@ -706,11 +733,12 @@
       .session-heading h1 { font-size: 14px; }
       .message-scroller { padding: 18px 14px; }
       .message-avatar { width: 25px; height: 25px; }
-      .tool-event, .plan-card, .approval-card, .safe-outcome, .complete-card { margin-left: 0; }
+      .tool-event, .plan-card, .approval-card, .safe-outcome, .issue-card, .complete-card { margin-left: 0; }
       .todo-list { margin-left: 0; }
       .approval-details { grid-template-columns: 1fr; gap: 8px; }
       .approval-actions { flex-wrap: wrap; justify-content: stretch; }
       .approval-actions .button { flex: 1; }
+      .issue-actions .button { flex: 1; }
       .complete-metrics { grid-template-columns: 1fr; }
       .composer-option.model { display: none; }
       .page-header { flex-direction: column; margin-bottom: 17px; }
@@ -824,7 +852,9 @@
           </div>
           <div class="workspace-actions">
             <span class="pill"><span class="model-dot"></span>DeepSeek Coder</span>
+            <span class="pill" id="sessionStatePill">Awaiting approval</span>
             <button class="header-action" data-action="show-session"><svg class="icon sm"><use href="#clock"></use></svg><span>Activity</span></button>
+            <button class="header-action" data-action="open-run-controls"><svg class="icon sm"><use href="#shield"></use></svg><span>Run controls</span></button>
             <button class="header-action active" id="detailsButton" data-action="toggle-details"><svg class="icon sm"><use href="#panel"></use></svg><span>Details</span></button>
             <button class="icon-button" data-action="open-new" aria-label="More session actions"><svg class="icon"><use href="#more"></use></svg></button>
           </div>
@@ -854,6 +884,7 @@
                   </div>
                 </article>
                 <div class="tool-event"><svg class="icon sm"><use href="#folder"></use></svg><div><strong>Read and searched workspace</strong><p>Examined 7 source and test files inside <code>apps/web</code>. No network, install, or external path access requested.</p></div></div>
+                <div class="tool-event" id="contextEvent" hidden><svg class="icon sm"><use href="#layers"></use></svg><div><strong>Context compacted safely</strong><p id="contextEventText">Earlier activity was summarized while preserving the task, todos, decisions, approvals, changes, and validation evidence.</p></div></div>
 
                 <section class="plan-card">
                   <div class="plan-heading"><div class="plan-icon"><svg class="icon sm"><use href="#spark"></use></svg></div><div><strong id="planTitle">Plan ready — awaiting controlled action</strong><p id="planText">1 completed, 1 pending approval, 1 queued validation</p></div></div>
@@ -866,23 +897,29 @@
 
                 <section class="approval-card" id="patchApproval" aria-label="Patch approval request">
                   <div class="approval-top"><div class="approval-icon"><svg class="icon"><use href="#shield"></use></svg></div><div class="approval-heading"><span class="eyebrow">Permission request</span><h2>Apply a focused patch</h2><p>Change parser behaviour and one focused test within the registered workspace.</p></div><span class="risk">Approval required</span></div>
-                  <div class="approval-details"><div class="approval-detail"><small>Affected files</small><strong>2 files in <code>apps/web</code></strong></div><div class="approval-detail"><small>Policy decision</small><strong>Write requires one-time approval</strong></div></div>
+                  <div class="approval-details"><div class="approval-detail"><small>Affected files</small><strong>2 files in <code>apps/web</code></strong></div><div class="approval-detail"><small>Policy decision</small><strong>Write requires one-time approval</strong></div><div class="approval-detail"><small>Reason</small><strong>Smallest safe repair for the submitted task</strong></div><div class="approval-detail"><small>Expires</small><strong id="patchExpiry">09:53 · 9 minutes</strong></div></div>
                   <div class="approval-preview">apps/web/src/lib/pricing.ts
 + normalise comma decimal values before Number parsing
 
 apps/web/src/lib/pricing.spec.ts
 + cover "12,50" input in focused pricing case</div>
-                  <div class="approval-actions"><button class="button ghost" data-action="show-session">Inspect details</button><button class="button danger" data-action="deny-patch">Deny</button><button class="button primary" data-action="approve-patch"><svg class="icon sm"><use href="#check"></use></svg>Approve once</button></div>
+                  <div class="approval-meta"><span>Action ID <code>apr_01H7P9</code></span><span>Fingerprint <code id="patchFingerprint">sha256:7c0a…91f4</code></span><span>Single use · active run only</span></div>
+                  <div class="approval-actions"><button class="button ghost" data-action="show-session">Inspect details</button><button class="button ghost" data-action="request-cancel">Cancel run</button><button class="button danger" data-action="deny-patch">Deny</button><button class="button primary" data-action="approve-patch"><svg class="icon sm"><use href="#check"></use></svg>Approve once</button></div>
                 </section>
 
                 <section class="approval-card" id="testApproval" hidden aria-label="Test approval request">
                   <div class="approval-top"><div class="approval-icon"><svg class="icon"><use href="#terminal"></use></svg></div><div class="approval-heading"><span class="eyebrow">Separate permission request</span><h2>Run the focused test</h2><p>The applied patch is complete. Test execution is a separately controlled action.</p></div><span class="risk">Command approval</span></div>
-                  <div class="approval-details"><div class="approval-detail"><small>Working directory</small><strong><code>apps/web</code></strong></div><div class="approval-detail"><small>Time limit</small><strong>2 minutes · no network</strong></div></div>
+                  <div class="approval-details"><div class="approval-detail"><small>Working directory</small><strong><code>apps/web</code></strong></div><div class="approval-detail"><small>Execution profile</small><strong>Isolated worktree · network blocked</strong></div><div class="approval-detail"><small>Reason</small><strong>Validate the reviewed change only</strong></div><div class="approval-detail"><small>Expires</small><strong id="testExpiry">09:55 · 9 minutes</strong></div></div>
                   <div class="approval-preview">pnpm vitest run src/lib/pricing.spec.ts</div>
-                  <div class="approval-actions"><button class="button ghost" data-action="show-session">Inspect details</button><button class="button danger" data-action="deny-test">Deny</button><button class="button primary" data-action="approve-test"><svg class="icon sm"><use href="#play"></use></svg>Run once</button></div>
+                  <div class="approval-meta"><span>Action ID <code>apr_01H7Q2</code></span><span>Fingerprint <code>sha256:2a6b…cd11</code></span><span>Single use · active run only</span></div>
+                  <div class="approval-actions"><button class="button ghost" data-action="show-session">Inspect details</button><button class="button ghost" data-action="request-cancel">Cancel run</button><button class="button danger" data-action="deny-test">Deny</button><button class="button primary" data-action="approve-test"><svg class="icon sm"><use href="#play"></use></svg>Run once</button></div>
                 </section>
 
                 <section class="safe-outcome" id="denialOutcome" hidden><svg class="icon"><use href="#shield"></use></svg><div><strong id="denialTitle">Action was not run</strong><p id="denialText">The decision was recorded. Give a revised instruction whenever you are ready.</p></div></section>
+                <section class="issue-card error" id="issueCard" hidden aria-label="Run issue">
+                  <div class="issue-icon" id="issueIcon"><svg class="icon"><use href="#shield"></use></svg></div>
+                  <div class="issue-copy"><h2 id="issueTitle">Run needs attention</h2><p id="issueText">A resumable runtime event requires an operator decision.</p><div class="issue-actions"><button class="button primary" id="issuePrimary" data-action="resume-run">Resume from checkpoint</button><button class="button ghost" id="issueSecondary" data-action="open-run-controls">View controls</button></div></div>
+                </section>
 
                 <section class="complete-card" id="completeCard" hidden aria-label="Completed run summary">
                   <div class="complete-heading"><div class="complete-icon"><svg class="icon"><use href="#check"></use></svg></div><div><h2>Focused repair completed</h2><p>The normaliser now handles comma decimals; the focused test passed without altering unrelated behaviour.</p></div></div>
@@ -915,8 +952,8 @@ apps/web/src/lib/pricing.spec.ts
               <div class="detail-todo" id="detailTodoThree"><span class="todo-dot"></span><span>Run the focused pricing test</span></div>
             </section>
             <section class="details-section"><h2><span>Changes</span><button class="button ghost small" data-action="show-session">Review</button></h2><div class="file-list"><button class="file-row" data-action="show-session"><svg class="icon sm"><use href="#file"></use></svg><code>src/lib/pricing.ts</code></button><button class="file-row" data-action="show-session"><svg class="icon sm"><use href="#file"></use></svg><code>src/lib/pricing.spec.ts</code></button></div></section>
-            <section class="details-section"><h2><span>Run usage</span><span class="badge neutral">Live</span></h2><dl class="detail-metrics"><dt>Provider</dt><dd>DeepSeek</dd><dt>Profile</dt><dd>coder-primary</dd><dt>Context</dt><dd>8.4k / 64k</dd><dt>Tool calls</dt><dd id="toolCalls">3 of 40</dd><dt>Est. cost</dt><dd>$0.06</dd></dl></section>
-            <section class="details-section"><h2><span>Safety</span></h2><dl class="detail-metrics"><dt>Workspace</dt><dd>In boundary</dd><dt>Network</dt><dd>Blocked</dd><dt>Approval expiry</dt><dd>09:53</dd></dl></section>
+            <section class="details-section"><h2><span>Run usage</span><span class="badge neutral">Live</span></h2><dl class="detail-metrics"><dt>Provider</dt><dd>DeepSeek</dd><dt>Profile</dt><dd>coder-primary</dd><dt>Context</dt><dd>8.4k / 64k</dd><dt>Tool calls</dt><dd id="toolCalls">3 of 40</dd><dt>Token limit</dt><dd id="tokenLimit">64k</dd><dt>Est. cost</dt><dd id="costLimit">$0.06 / $2.00</dd></dl></section>
+            <section class="details-section"><h2><span>Safety</span></h2><dl class="detail-metrics"><dt>Workspace</dt><dd>In boundary</dd><dt>Execution</dt><dd>Isolated worktree</dd><dt>Network</dt><dd>Blocked</dd><dt>Approval expiry</dt><dd id="detailExpiry">09:53</dd></dl></section>
           </aside>
         </div>
       </section>
@@ -962,14 +999,16 @@ apps/web/src/lib/pricing.spec.ts
           <header class="page-header"><div><h1>Session review</h1><p>One source of truth for activity, decisions, changes, validation, and outcome.</p></div><div class="page-actions"><button class="button" data-action="go-view" data-target="workspace"><svg class="icon sm"><use href="#chat"></use></svg>Return to workspace</button><button class="button primary" data-action="open-new"><svg class="icon sm"><use href="#plus"></use></svg>Follow-up</button></div></header>
           <div class="review-layout">
             <div>
-              <section class="content-card summary-card"><div class="summary-top"><div class="summary-icon" id="reviewIcon"><svg class="icon"><use href="#clock"></use></svg></div><div><span class="eyebrow">storefront / apps/web</span><h2 id="reviewTitle">Pricing test investigation</h2><p id="reviewStatus">In progress · awaiting approval to apply a focused patch</p></div></div><div class="session-kpis"><div><small>Mode</small><strong id="reviewMode">Execute</strong></div><div><small>Profile</small><strong>DeepSeek Coder</strong></div><div><small>Elapsed</small><strong>02m 14s</strong></div><div><small>Context compactions</small><strong>0</strong></div></div></section>
+              <section class="content-card summary-card"><div class="summary-top"><div class="summary-icon" id="reviewIcon"><svg class="icon"><use href="#clock"></use></svg></div><div><span class="eyebrow">storefront / apps/web</span><h2 id="reviewTitle">Pricing test investigation</h2><p id="reviewStatus">In progress · awaiting approval to apply a focused patch</p></div></div><div class="session-kpis"><div><small>Mode</small><strong id="reviewMode">Execute</strong></div><div><small>Profile</small><strong>DeepSeek Coder</strong></div><div><small>Elapsed</small><strong>02m 14s</strong></div><div><small>Context compactions</small><strong id="reviewCompactions">0</strong></div></div></section>
               <div class="tabs" role="tablist" aria-label="Session review tabs"><button class="active" data-action="tab" data-tab="activity" role="tab">Activity</button><button data-action="tab" data-tab="changes" role="tab">Changes</button><button data-action="tab" data-tab="terminal" role="tab">Terminal</button><button data-action="tab" data-tab="review" role="tab">Review</button></div>
               <section class="content-card session-panel active" data-panel="activity"><header class="content-header"><div><h2>Chronological activity</h2><p>Persisted events, including policy and approval decisions</p></div><span class="badge info">Live stream</span></header><div class="timeline">
                 <div class="timeline-event"><div class="timeline-dot info"><svg class="icon sm"><use href="#plus"></use></svg></div><div><strong>Session created</strong><p>Controlled Execute mode with the default policy profile.</p><time>09:42:01</time></div></div>
                 <div class="timeline-event"><div class="timeline-dot"><svg class="icon sm"><use href="#spark"></use></svg></div><div><strong>Plan and todos recorded</strong><p>Agent found a locale-sensitive conversion path and created three tracked steps.</p><time>09:42:18</time></div></div>
                 <div class="timeline-event"><div class="timeline-dot info"><svg class="icon sm"><use href="#folder"></use></svg></div><div><strong>Read-only workspace tools completed</strong><p>Seven in-boundary files inspected; no external paths or network requests.</p><time>09:42:36</time></div></div>
+                <div class="timeline-event" id="contextTimeline" hidden><div class="timeline-dot info"><svg class="icon sm"><use href="#layers"></use></svg></div><div><strong>Context compacted</strong><p id="contextTimelineText">Older events were summarized without losing task, policy, approvals, changes, or validation evidence.</p><time id="contextTimelineTime">09:42:48</time></div></div>
                 <div class="timeline-event" id="patchEvent"><div class="timeline-dot warning"><svg class="icon sm"><use href="#shield"></use></svg></div><div><strong id="patchEventTitle">Patch approval requested</strong><p id="patchEventText">A focused write to pricing.ts and pricing.spec.ts is waiting for a one-time decision.</p><time>09:43:05</time></div></div>
                 <div class="timeline-event" id="testEvent" hidden><div class="timeline-dot warning"><svg class="icon sm"><use href="#terminal"></use></svg></div><div><strong id="testEventTitle">Test approval requested</strong><p id="testEventText">The patch was applied; the focused validation command requires separate consent.</p><time>09:44:11</time></div></div>
+                <div class="timeline-event" id="issueTimeline" hidden><div class="timeline-dot warning"><svg class="icon sm"><use href="#shield"></use></svg></div><div><strong id="issueTimelineTitle">Run paused safely</strong><p id="issueTimelineText">A recoverable runtime outcome needs an operator decision.</p><time id="issueTimelineTime">09:44:26</time></div></div>
                 <div class="timeline-event" id="completeEvent" hidden><div class="timeline-dot success"><svg class="icon sm"><use href="#check"></use></svg></div><div><strong>Run completed</strong><p>Focused test passed. Review data and diff remain available for the session.</p><time>09:45:03</time></div></div>
               </div></section>
               <section class="content-card session-panel" data-panel="changes"><header class="content-header"><div><h2>Change review</h2><p>Two focused files in the allowed workspace</p></div><span class="badge warning" id="changeBadge">Proposed</span></header>
@@ -982,7 +1021,7 @@ apps/web/src/lib/pricing.spec.ts
               <section class="content-card session-panel" data-panel="review"><header class="content-header"><div><h2>Final review</h2><p>Plain-language result, validation evidence, and follow-up readiness</p></div><span class="badge neutral" id="finalBadge">Pending</span></header><div class="review-content"><div class="review-callout"><svg class="icon"><use href="#check"></use></svg><div><h3 id="finalTitle">Waiting for a controlled outcome</h3><p id="finalText">The runtime will populate a structured result after the required approvals are resolved.</p></div></div><ul class="review-list"><li>Todos, approvals, tool events, and usage are retained for resume and audit.</li><li>Provider credentials, hidden prompts, and raw environment values are not present in the browser.</li><li id="reviewNext">Next step: approve, deny, or revise the proposed patch from the agent workspace.</li></ul></div></section>
             </div>
             <aside class="rail">
-              <section class="content-card rail-card"><h2>Run controls</h2><p id="railStatus">Run is paused at a required approval.</p><div style="margin-top:11px;"><button class="button primary" data-action="go-view" data-target="workspace">Open decision</button></div></section>
+              <section class="content-card rail-card"><h2>Run controls</h2><p id="railStatus">Run is paused at a required approval.</p><div style="display:flex;gap:8px;margin-top:11px;"><button class="button primary" data-action="open-run-controls">Open controls</button><button class="button ghost" data-action="request-archive">Archive</button></div></section>
               <section class="content-card rail-card"><h2>Audit integrity</h2><dl><dt>Event sequence</dt><dd>12</dd><dt>Replay state</dt><dd>Ready</dd><dt>Correlation</dt><dd>run_01H7…</dd><dt>Workspace</dt><dd>Bounded</dd></dl></section>
               <section class="content-card rail-card"><h2>Need a summary?</h2><p>Use Statistics for aggregate performance and provider usage without exposing session content.</p><div style="margin-top:11px;"><button class="button ghost" data-action="go-view" data-target="reports">Open statistics</button></div></section>
             </aside>
@@ -1027,10 +1066,49 @@ apps/web/src/lib/pricing.spec.ts
       <header class="modal-header"><div><h2 id="newTitle">Start a new session</h2><p>Create a controlled coding-agent task in a registered workspace.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close dialog"><svg class="icon"><use href="#x"></use></svg></button></header>
       <form class="modal-body form" id="newForm">
         <div class="field"><label for="newTask">What should SharpAgent do?</label><textarea class="textarea" id="newTask" required>Identify why the focused pricing page test is flaky, make the smallest safe repair, and run the focused test.</textarea><span class="field-help">A clear outcome helps the agent create a bounded plan and accurate approval requests.</span></div>
-        <div class="form-grid"><div class="field"><label for="workspaceSelect">Workspace</label><select class="select" id="workspaceSelect"><option>storefront / apps/web</option><option>SharpAgent / backend</option></select></div><div class="field"><label for="profileSelect">Model profile</label><select class="select" id="profileSelect"><option>DeepSeek Coder · validated</option><option>OpenCode Go · validated</option><option>OpenRouter · plan only</option></select></div></div>
+        <div class="form-grid"><div class="field"><label for="workspaceSelect">Workspace</label><select class="select" id="workspaceSelect"><option>storefront / apps/web</option><option>SharpAgent / backend</option></select></div><div class="field"><label for="profileSelect">Model profile</label><select class="select" id="profileSelect"><option>DeepSeek Coder · validated</option><option>OpenCode Go · validated</option><option id="openRouterProfile">OpenRouter · plan only</option></select></div></div>
         <div class="field"><label for="modeSelect">Run mode</label><select class="select" id="modeSelect"><option value="execute">Controlled execute — writes and commands request approval</option><option value="plan">Plan only — read and search without changes</option></select></div>
+        <div class="form-grid"><div class="field"><label for="newMaxCost">Maximum estimated cost (USD)</label><input class="input" id="newMaxCost" type="number" min="0.01" step="0.01" value="2.00"></div><div class="field"><label for="newMaxTools">Maximum tool calls</label><input class="input" id="newMaxTools" type="number" min="1" max="100" value="40"></div></div>
         <div class="form-actions"><button type="button" class="button" data-action="close-modal">Cancel</button><button class="button primary" type="submit"><svg class="icon sm"><use href="#play"></use></svg>Start session</button></div>
       </form>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="runControlsModal" aria-hidden="true">
+    <section class="modal small" role="dialog" aria-modal="true" aria-labelledby="runControlsTitle">
+      <header class="modal-header"><div><h2 id="runControlsTitle">Session controls</h2><p id="runControlsSubtitle">The active run is paused at a required approval.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close session controls"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <div class="modal-body">
+        <div class="modal-note"><svg class="icon sm"><use href="#shield"></use></svg><span>Every state-changing action is represented as an audited command. This prototype stores demo state locally so refresh can preserve the current scenario.</span></div>
+        <form class="form" id="resumeForm" style="margin-top:15px"><div class="field"><label for="resumeInstruction">Resume with a follow-up instruction</label><textarea class="textarea" id="resumeInstruction" rows="3" placeholder="Optional: narrow the task or add a validation instruction"></textarea><span class="field-help">A resumed run creates a new sequence from the preserved task, todos, decisions, changes, and audit context.</span></div><div class="form-actions"><button class="button primary" type="submit"><svg class="icon sm"><use href="#play"></use></svg>Resume run</button></div></form>
+        <div class="settings-card" style="margin-top:16px"><div class="settings-row"><div class="settings-copy"><h3>Cancel active run</h3><p>Stops further work at the next safe checkpoint and preserves the audit trail.</p></div><button class="button danger" data-action="request-cancel">Cancel run</button></div><div class="settings-row"><div class="settings-copy"><h3>Archive this session</h3><p>Hide the session from the active list without deleting its audit history or changes.</p></div><button class="button" data-action="request-archive">Archive</button></div></div>
+        <div class="settings-card"><div class="settings-row"><div class="settings-copy"><h3>Prototype runtime scenarios</h3><p>Use these to review the UI for events delivered by the future runtime.</p></div></div><div class="control-stack" style="padding:12px"><button class="control-option" data-action="simulate-compaction"><svg class="icon"><use href="#layers"></use></svg><span><strong>Context compaction</strong><span>Show a safe summary event while retaining essential run state.</span></span></button><button class="control-option warning" data-action="simulate-limit"><svg class="icon"><use href="#clock"></use></svg><span><strong>Configured limit reached</strong><span>Show an interrupted run with clear resume guidance.</span></span></button><button class="control-option danger" data-action="simulate-provider-error"><svg class="icon"><use href="#layers"></use></svg><span><strong>Provider error</strong><span>Show a recoverable provider failure without exposing credentials.</span></span></button><button class="control-option warning" data-action="simulate-interruption"><svg class="icon"><use href="#refresh"></use></svg><span><strong>Interrupted stream</strong><span>Show a reconnect/replay recovery path from a safe checkpoint.</span></span></button></div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="confirmModal" aria-hidden="true">
+    <section class="modal small" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <header class="modal-header"><div><h2 id="confirmTitle">Confirm action</h2><p id="confirmText">This action will be recorded in the session audit history.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close confirmation"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <div class="modal-body"><div class="modal-note"><svg class="icon sm"><use href="#shield"></use></svg><span id="confirmNote">No provider key, raw command environment, or hidden reasoning is exposed by this control.</span></div><div class="form-actions" style="margin-top:16px"><button class="button" data-action="close-modal">Keep working</button><button class="button danger" id="confirmButton" data-action="confirm-action">Confirm</button></div></div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="limitsModal" aria-hidden="true">
+    <section class="modal small" role="dialog" aria-modal="true" aria-labelledby="limitsTitle">
+      <header class="modal-header"><div><h2 id="limitsTitle">Run limits</h2><p>Limits may only tighten the selected policy profile for a new session.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close run limits"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <form class="modal-body form" id="limitsForm">
+        <div class="form-grid"><div class="field"><label for="limitDuration">Maximum run duration (minutes)</label><input class="input" id="limitDuration" type="number" min="1" max="120" value="20"></div><div class="field"><label for="limitTools">Maximum tool calls</label><input class="input" id="limitTools" type="number" min="1" max="100" value="40"></div></div>
+        <div class="form-grid"><div class="field"><label for="limitTokens">Maximum context (tokens)</label><input class="input" id="limitTokens" type="number" min="1000" step="1000" value="64000"></div><div class="field"><label for="limitCost">Maximum estimated cost (USD)</label><input class="input" id="limitCost" type="number" min="0.01" step="0.01" value="2.00"></div></div>
+        <div class="field"><label for="limitExpiry">Approval expiry (minutes)</label><input class="input" id="limitExpiry" type="number" min="1" max="60" value="10"></div>
+        <div class="form-actions"><button type="button" class="button" data-action="close-modal">Cancel</button><button type="submit" class="button primary">Save tighter limits</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="providerModal" aria-hidden="true">
+    <section class="modal small" role="dialog" aria-modal="true" aria-labelledby="providerTitle">
+      <header class="modal-header"><div><h2 id="providerTitle">Validate model profile</h2><p id="providerSubtitle">A bounded, non-destructive validation checks a configured provider profile.</p></div><button class="icon-button" data-action="close-modal" aria-label="Close profile validation"><svg class="icon"><use href="#x"></use></svg></button></header>
+      <div class="modal-body"><div class="modal-note"><svg class="icon sm"><use href="#shield"></use></svg><span>The validation uses no real repository and exposes neither API keys nor raw provider configuration.</span></div><div class="validation-steps"><div class="validation-step"><svg class="icon sm"><use href="#check"></use></svg><span>Connection and credential reference</span><span class="badge success">Checked</span></div><div class="validation-step"><svg class="icon sm"><use href="#check"></use></svg><span>Streaming response contract</span><span class="badge success">Checked</span></div><div class="validation-step"><svg class="icon sm"><use href="#check"></use></svg><span>Structured tool request normalisation</span><span class="badge success">Checked</span></div><div class="validation-step"><svg class="icon sm"><use href="#check"></use></svg><span>Usage and error normalisation</span><span class="badge success">Checked</span></div></div><div class="form-actions"><button class="button" data-action="close-modal">Cancel</button><button class="button primary" data-action="complete-provider-validation"><svg class="icon sm"><use href="#check"></use></svg>Mark validated</button></div></div>
     </section>
   </div>
 
@@ -1071,7 +1149,22 @@ apps/web/src/lib/pricing.spec.ts
 
   <script>
     (function () {
-      var state = { view: "workspace", theme: "studio", stage: "patch", mode: "execute", details: true, admin: "general" };
+      var state = {
+        view: "workspace",
+        theme: "studio",
+        stage: "patch",
+        mode: "execute",
+        details: true,
+        admin: "general",
+        tab: "activity",
+        sessionId: "pricing-test-01H",
+        title: "Pricing test investigation",
+        task: "Identify why the focused pricing page test is flaky, make the smallest safe repair, and run the focused test.",
+        contextCompactions: 0,
+        openRouterValidated: false,
+        confirmation: null,
+        limits: { duration: 20, tools: 40, tokens: 64000, cost: 2, expiry: 10 }
+      };
       var shell = document.getElementById("appShell");
       var toast = document.getElementById("toast");
       var toastText = document.getElementById("toastText");
@@ -1086,14 +1179,94 @@ apps/web/src/lib/pricing.spec.ts
         clearTimeout(toastTimer);
         toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 2700);
       }
-      function closeModals() {
+      function persistPrototypeState() {
+        try {
+          localStorage.setItem("sharpagent-session-prototype", JSON.stringify({
+            stage: state.stage,
+            mode: state.mode,
+            title: state.title,
+            task: state.task,
+            contextCompactions: state.contextCompactions,
+            openRouterValidated: state.openRouterValidated,
+            limits: state.limits,
+            tab: state.tab
+          }));
+        } catch (error) {}
+      }
+      function routeForCurrentState() {
+        if (state.view === "home") return "#/";
+        if (state.view === "archive") return "#/sessions/archive";
+        if (state.view === "reports") return "#/reports";
+        if (state.view === "session") {
+          if (state.tab === "changes") return "#/sessions/" + state.sessionId + "/changes";
+          return "#/sessions/" + state.sessionId + "?panel=" + state.tab;
+        }
+        return "#/sessions/" + state.sessionId;
+      }
+      function syncRoute() {
+        var route = routeForCurrentState();
+        if (window.location.hash !== route) {
+          try { window.history.replaceState(null, "", window.location.pathname + window.location.search + route); } catch (error) { window.location.hash = route; }
+        }
+      }
+      function setExplicitRoute(route) {
+        if (window.location.hash !== route) {
+          try { window.history.pushState(null, "", window.location.pathname + window.location.search + route); } catch (error) { window.location.hash = route; }
+        }
+      }
+      function routeForAdmin(category) {
+        if (category === "providers") return "#/settings/models?section=providers";
+        return "#/settings/" + ({ workspaces: "workspaces", models: "models", policy: "policy", runtime: "runtime", appearance: "appearance", general: "general" }[category] || "general");
+      }
+      function applyHashRoute() {
+        var raw = (window.location.hash || "#/").slice(1);
+        var parts = raw.split("?");
+        var path = parts[0] || "/";
+        var query = new URLSearchParams(parts[1] || "");
+        if (path === "/" || path === "") { showView("home", true); return; }
+        if (path === "/reports") { showView("reports", true); return; }
+        if (path === "/sessions/new") { showView("workspace", true); openModal("newModal"); return; }
+        if (path === "/sessions/archive") { showView("archive", true); return; }
+        if (path.indexOf("/settings/") === 0) {
+          var segment = path.slice("/settings/".length);
+          var category = { workspaces: "workspaces", models: "models", policy: "policy", runtime: "runtime", appearance: "appearance", general: "general" }[segment] || "general";
+          if (segment === "models" && query.get("section") === "providers") category = "providers";
+          showView("workspace", true);
+          state.admin = category;
+          openModal("settingsModal");
+          renderSettings(category);
+          return;
+        }
+        var changeMatch = path.match(/^\/sessions\/([^/]+)\/changes$/);
+        if (changeMatch) {
+          state.sessionId = changeMatch[1];
+          showView("session", true);
+          switchTab("changes", true);
+          return;
+        }
+        var sessionMatch = path.match(/^\/sessions\/([^/]+)$/);
+        if (sessionMatch) {
+          state.sessionId = sessionMatch[1];
+          var panel = query.get("panel");
+          if (["activity", "changes", "terminal", "review"].indexOf(panel) !== -1) {
+            showView("session", true);
+            switchTab(panel, true);
+          } else {
+            showView("workspace", true);
+          }
+          return;
+        }
+        showView("workspace", true);
+      }
+      function closeModals(keepRoute) {
         document.querySelectorAll(".modal-layer.open").forEach(function (modal) {
           modal.classList.remove("open");
           modal.setAttribute("aria-hidden", "true");
         });
+        if (!keepRoute) syncRoute();
       }
       function openModal(id) {
-        closeModals();
+        closeModals(true);
         var modal = document.getElementById(id);
         if (modal) {
           modal.classList.add("open");
@@ -1102,7 +1275,7 @@ apps/web/src/lib/pricing.spec.ts
           if (focusable) setTimeout(function () { focusable.focus(); }, 20);
         }
       }
-      function showView(view) {
+      function showView(view, fromRoute) {
         var destination = document.querySelector('[data-view="' + view + '"]');
         if (!destination) return;
         state.view = view;
@@ -1113,16 +1286,20 @@ apps/web/src/lib/pricing.spec.ts
           button.classList.toggle("active", active);
           button.setAttribute("aria-selected", active ? "true" : "false");
         });
-        closeModals();
+        closeModals(true);
         shell.classList.remove("sidebar-open");
         if (view !== "workspace") destination.scrollTop = 0;
+        if (!fromRoute) syncRoute();
       }
-      function setTitle(title) {
+      function setTitle(title, task) {
+        state.title = title;
+        state.task = typeof task === "string" ? task : title;
         var shortened = title.length > 58 ? title.slice(0, 55) + "…" : title;
         document.getElementById("headerSession").textContent = shortened;
         document.getElementById("workspaceTitle").textContent = shortened;
         document.getElementById("activeTitle").textContent = shortened;
         document.getElementById("reviewTitle").textContent = shortened;
+        persistPrototypeState();
       }
       function setTodo(id, status) {
         var item = document.getElementById(id);
@@ -1136,12 +1313,34 @@ apps/web/src/lib/pricing.spec.ts
         setTodo("todoOne", one); setTodo("todoTwo", two); setTodo("todoThree", three);
         setTodo("detailTodoOne", one); setTodo("detailTodoTwo", two); setTodo("detailTodoThree", three);
       }
+      function applyLimitsToUi() {
+        var limits = state.limits;
+        var tokenLimit = document.getElementById("tokenLimit");
+        var costLimit = document.getElementById("costLimit");
+        var detailExpiry = document.getElementById("detailExpiry");
+        var patchExpiry = document.getElementById("patchExpiry");
+        var testExpiry = document.getElementById("testExpiry");
+        if (tokenLimit) tokenLimit.textContent = Math.round(Number(limits.tokens) / 1000) + "k";
+        if (costLimit) costLimit.textContent = "$0.06 / $" + Number(limits.cost).toFixed(2);
+        if (detailExpiry) detailExpiry.textContent = "09:53 · " + limits.expiry + " min";
+        if (patchExpiry) patchExpiry.textContent = "09:53 · " + limits.expiry + " minutes";
+        if (testExpiry) testExpiry.textContent = "09:55 · " + limits.expiry + " minutes";
+        document.querySelectorAll("#newMaxCost, #limitCost").forEach(function (field) { field.value = Number(limits.cost).toFixed(2); });
+        document.querySelectorAll("#newMaxTools, #limitTools").forEach(function (field) { field.value = limits.tools; });
+        var limitDuration = document.getElementById("limitDuration");
+        var limitTokens = document.getElementById("limitTokens");
+        var limitExpiry = document.getElementById("limitExpiry");
+        if (limitDuration) limitDuration.value = limits.duration;
+        if (limitTokens) limitTokens.value = limits.tokens;
+        if (limitExpiry) limitExpiry.value = limits.expiry;
+      }
       function setStage(stage) {
         state.stage = stage;
         var patch = document.getElementById("patchApproval");
         var test = document.getElementById("testApproval");
         var complete = document.getElementById("completeCard");
         var denied = document.getElementById("denialOutcome");
+        var issue = document.getElementById("issueCard");
         var planTitle = document.getElementById("planTitle");
         var planText = document.getElementById("planText");
         var planBadge = document.getElementById("planBadge");
@@ -1162,13 +1361,33 @@ apps/web/src/lib/pricing.spec.ts
         var railStatus = document.getElementById("railStatus");
         var terminal = document.getElementById("terminalOutput");
         var toolCalls = document.getElementById("toolCalls");
+        var sessionStatePill = document.getElementById("sessionStatePill");
+        var contextEvent = document.getElementById("contextEvent");
+        var contextTimeline = document.getElementById("contextTimeline");
+        var reviewCompactions = document.getElementById("reviewCompactions");
+        var issueTimeline = document.getElementById("issueTimeline");
+        var issueTitle = document.getElementById("issueTitle");
+        var issueText = document.getElementById("issueText");
+        var issueIcon = document.getElementById("issueIcon");
+        var issuePrimary = document.getElementById("issuePrimary");
+        var issueSecondary = document.getElementById("issueSecondary");
+        var issueTimelineTitle = document.getElementById("issueTimelineTitle");
+        var issueTimelineText = document.getElementById("issueTimelineText");
+        var issueTimelineTime = document.getElementById("issueTimelineTime");
+        var issueStages = ["provider-error", "limit", "interrupted", "cancelled", "archived"];
 
+        applyLimitsToUi();
         patch.hidden = stage !== "patch";
         test.hidden = stage !== "test";
         complete.hidden = stage !== "complete";
         denied.hidden = stage !== "denied-patch" && stage !== "denied-test" && stage !== "plan";
+        issue.hidden = issueStages.indexOf(stage) === -1;
         testEvent.hidden = stage !== "test" && stage !== "complete" && stage !== "denied-test";
         completeEvent.hidden = stage !== "complete";
+        issueTimeline.hidden = issueStages.indexOf(stage) === -1;
+        contextEvent.hidden = state.contextCompactions === 0;
+        contextTimeline.hidden = state.contextCompactions === 0;
+        reviewCompactions.textContent = state.contextCompactions;
 
         if (stage === "patch") {
           allTodos("done", "working", "pending");
@@ -1188,7 +1407,8 @@ apps/web/src/lib/pricing.spec.ts
           reviewNext.textContent = "Next step: approve, deny, or revise the proposed patch from the agent workspace.";
           railStatus.textContent = "Run is paused at a required approval.";
           terminal.innerHTML = '<span class="term-warning"># Command not started — approval required</span>\n\n<span class="term-command">pnpm vitest run src/lib/pricing.spec.ts</span>';
-          toolCalls.textContent = "3 of 40";
+          toolCalls.textContent = "3 of " + state.limits.tools;
+          sessionStatePill.textContent = "Awaiting approval";
         }
         if (stage === "test") {
           allTodos("done", "done", "working");
@@ -1208,7 +1428,8 @@ apps/web/src/lib/pricing.spec.ts
           reviewNext.textContent = "Next step: approve or deny the focused pricing test command.";
           railStatus.textContent = "Patch applied. Test command awaits a separate decision.";
           terminal.innerHTML = '<span class="term-warning"># Command queued — second approval required</span>\n\n<span class="term-command">pnpm vitest run src/lib/pricing.spec.ts</span>';
-          toolCalls.textContent = "4 of 40";
+          toolCalls.textContent = "4 of " + state.limits.tools;
+          sessionStatePill.textContent = "Test approval";
         }
         if (stage === "complete") {
           allTodos("done", "done", "done");
@@ -1228,7 +1449,8 @@ apps/web/src/lib/pricing.spec.ts
           reviewNext.textContent = "Suggested follow-up: run the wider suite only if you want broader confidence.";
           railStatus.textContent = "Run completed safely. The audit, diff, and validation result are retained.";
           terminal.innerHTML = '<span class="term-command">$ pnpm vitest run src/lib/pricing.spec.ts</span>\n\n<span class="term-good"> ✓ src/lib/pricing.spec.ts (6 tests) 118ms</span>\n\n<span class="term-good"> Test Files  1 passed (1)</span>\n<span class="term-good">      Tests  6 passed (6)</span>\n<span class="term-good">   Duration  1.24s</span>';
-          toolCalls.textContent = "5 of 40";
+          toolCalls.textContent = "5 of " + state.limits.tools;
+          sessionStatePill.textContent = "Complete";
         }
         if (stage === "denied-patch" || stage === "denied-test" || stage === "plan") {
           var patchDenied = stage === "denied-patch";
@@ -1252,13 +1474,220 @@ apps/web/src/lib/pricing.spec.ts
           document.getElementById("denialTitle").textContent = planOnly ? "Plan-only session completed without changes" : patchDenied ? "Patch was denied — no files changed" : "Test command was denied — patch remains reviewable";
           document.getElementById("denialText").textContent = planOnly ? "The selected mode prevents writes and commands. Start a controlled execute session to act on the plan." : patchDenied ? "The write proposal was recorded as denied. SharpAgent will not repeat it without your revised instruction." : "The validation command was not run. The approved patch remains visible for review.";
           terminal.innerHTML = '<span class="term-warning"># Validation command was not run — no active approval</span>';
-          toolCalls.textContent = patchDenied || planOnly ? "3 of 40" : "4 of 40";
+          toolCalls.textContent = patchDenied || planOnly ? "3 of " + state.limits.tools : "4 of " + state.limits.tools;
+          sessionStatePill.textContent = planOnly ? "Plan complete" : "Paused safely";
         }
+        if (issueStages.indexOf(stage) !== -1) {
+          var issueDetails = {
+            "provider-error": {
+              kind: "error", icon: "layers", title: "Provider response needs recovery",
+              text: "The provider response was normalised into a retryable error. No key, raw payload, or hidden reasoning is shown in this prototype.",
+              primary: "Resume from checkpoint", primaryAction: "resume-run",
+              secondary: "Review providers", secondaryAction: "open-admin-provider",
+              review: "Paused · a recoverable provider response was recorded",
+              final: "Provider response interrupted", finalText: "Resume when ready. The next run would continue from the last durable checkpoint.",
+              next: "Next step: resume from the preserved checkpoint or review the model profile.",
+              rail: "Run paused safely after a recoverable provider response.",
+              terminal: '<span class="term-warning"># Provider stream ended unexpectedly — retry is safe from the last durable event</span>',
+              toolCalls: "3"
+            },
+            limit: {
+              kind: "warning", icon: "clock", title: "Configured run limit reached",
+              text: "The runtime stopped before a further tool action. Review the tight limit or resume with a narrower instruction.",
+              primary: "Review limits", primaryAction: "open-limits",
+              secondary: "Resume with scope", secondaryAction: "open-run-controls",
+              review: "Paused · configured session limit reached",
+              final: "Run bounded by policy limit", finalText: "No additional command or write was proposed after the configured limit was reached.",
+              next: "Next step: tighten or adjust the allowed session limits, then resume with a focused instruction.",
+              rail: "Run paused at a configured safety limit.",
+              terminal: '<span class="term-warning"># Run stopped — configured tool, cost, context, or duration limit reached</span>',
+              toolCalls: String(state.limits.tools)
+            },
+            interrupted: {
+              kind: "warning", icon: "refresh", title: "Live stream interrupted",
+              text: "The browser can reconnect and resume from the last durable event. Existing approvals are not replayed or widened.",
+              primary: "Resume from checkpoint", primaryAction: "resume-run",
+              secondary: "View controls", secondaryAction: "open-run-controls",
+              review: "Interrupted · last durable runtime event is preserved",
+              final: "Stream interruption captured", finalText: "The session remains recoverable without repeating an approved action.",
+              next: "Next step: resume the stream from the checkpoint or archive the preserved session.",
+              rail: "Live stream interrupted; no unapproved action was repeated.",
+              terminal: '<span class="term-warning"># Stream connection interrupted — replay available from the last durable event</span>',
+              toolCalls: "3"
+            },
+            cancelled: {
+              kind: "warning", icon: "shield", title: "Run cancelled by operator",
+              text: "The current run was stopped at a safe checkpoint. Audit events, proposed changes, and approval decisions remain available.",
+              primary: "Resume with follow-up", primaryAction: "resume-run",
+              secondary: "Archive session", secondaryAction: "request-archive",
+              review: "Cancelled · no further tool action was performed",
+              final: "Run stopped safely", finalText: "The cancellation is captured in the audit trail. Start a focused follow-up when ready.",
+              next: "Next step: resume with a revised instruction or archive the retained session.",
+              rail: "Run cancelled at a safe checkpoint.",
+              terminal: '<span class="term-warning"># Operator cancellation recorded — no further command or write will run</span>',
+              toolCalls: "3"
+            },
+            archived: {
+              kind: "warning", icon: "archive", title: "Session archived",
+              text: "The session is no longer active, but its tasks, approvals, changes, and audit history remain available for review or recovery.",
+              primary: "Restore session", primaryAction: "restore-archive",
+              secondary: "Open archive", secondaryAction: "go-archive",
+              review: "Archived · retained for audit and future recovery",
+              final: "Session retained safely", finalText: "Archive does not delete the task, audit history, proposed changes, or validation evidence.",
+              next: "Next step: keep the session archived or restore it with a new follow-up instruction.",
+              rail: "Session archived with its audit record retained.",
+              terminal: '<span class="term-warning"># Archived session — executor is not active</span>',
+              toolCalls: "3"
+            }
+          }[stage];
+          allTodos("done", "pending", "pending");
+          planTitle.textContent = stage === "archived" ? "Archived session — recovery remains available" : "Run paused — operator decision required";
+          planText.textContent = stage === "archived" ? "No active executor; retained state can be restored as a new continuation" : "No further tool action will occur until the operator takes a deliberate next step";
+          planBadge.textContent = stage === "archived" ? "Archived" : "Paused safely";
+          planBadge.className = "badge warning";
+          homePending.textContent = "0";
+          activeStatus.className = "session-status paused";
+          reviewStatus.textContent = issueDetails.review;
+          reviewIcon.className = "summary-icon"; reviewIcon.innerHTML = svg(issueDetails.icon);
+          patchEventTitle.textContent = "Last durable action retained";
+          patchEventText.textContent = "The task, policy decision, approval data, and known change state remain available for review.";
+          changeBadge.textContent = stage === "archived" ? "Retained" : "Reviewable";
+          changeBadge.className = "badge neutral";
+          terminalBadge.textContent = "Paused"; terminalBadge.className = "badge warning";
+          finalBadge.textContent = stage === "archived" ? "Archived" : "Paused"; finalBadge.className = "badge warning";
+          finalTitle.textContent = issueDetails.final;
+          finalText.textContent = issueDetails.finalText;
+          reviewNext.textContent = issueDetails.next;
+          railStatus.textContent = issueDetails.rail;
+          terminal.innerHTML = issueDetails.terminal;
+          toolCalls.textContent = issueDetails.toolCalls + " of " + state.limits.tools;
+          sessionStatePill.textContent = stage === "archived" ? "Archived" : "Needs attention";
+          issue.className = "issue-card " + issueDetails.kind;
+          issueTitle.textContent = issueDetails.title;
+          issueText.textContent = issueDetails.text;
+          issueIcon.innerHTML = svg(issueDetails.icon);
+          issuePrimary.textContent = issueDetails.primary;
+          issuePrimary.setAttribute("data-action", issueDetails.primaryAction);
+          issueSecondary.textContent = issueDetails.secondary;
+          issueSecondary.setAttribute("data-action", issueDetails.secondaryAction);
+          issueTimelineTitle.textContent = issueDetails.title;
+          issueTimelineText.textContent = issueDetails.text;
+          issueTimelineTime.textContent = "09:44:26";
+        }
+        persistPrototypeState();
       }
       function setMode(mode) {
         state.mode = mode;
         document.getElementById("modeLabel").textContent = mode === "plan" ? "Plan only" : "Controlled execute";
         document.getElementById("reviewMode").textContent = mode === "plan" ? "Plan" : "Execute";
+        persistPrototypeState();
+      }
+      function showContextCompaction() {
+        state.contextCompactions += 1;
+        var count = state.contextCompactions;
+        var message = count === 1
+          ? "Earlier activity was summarized while preserving the task, todos, decisions, approvals, changes, and validation evidence."
+          : count + " safe summaries have retained the task, policy decisions, approvals, changes, and validation evidence.";
+        document.getElementById("contextEventText").textContent = message;
+        document.getElementById("contextTimelineText").textContent = message;
+        document.getElementById("contextTimelineTime").textContent = "09:4" + Math.min(8 + count, 9) + ":00";
+        setStage(state.stage);
+        notify("Context compaction recorded without dropping essential session state.");
+      }
+      function openRunControls() {
+        var subtitles = {
+          patch: "The active run is paused at a required patch approval.",
+          test: "The patch is applied; a separate focused test approval is waiting.",
+          complete: "The run is complete. Start a focused continuation or archive its retained evidence.",
+          archived: "The archived session can be restored as a new continuation with preserved audit context.",
+          cancelled: "The run was stopped safely and can be resumed with a clear follow-up instruction.",
+          interrupted: "The live stream can resume from its last durable event.",
+          "provider-error": "The provider response is recoverable from the last durable event.",
+          limit: "The run is paused by a configured safety limit.",
+          "denied-patch": "The rejected patch will not retry unless you provide a revised instruction.",
+          "denied-test": "The test was denied; you can give a new bounded instruction.",
+          plan: "The plan-only session is complete; use a focused follow-up to continue."
+        };
+        document.getElementById("runControlsSubtitle").textContent = subtitles[state.stage] || "Review the current session state and choose a deliberate next action.";
+        document.getElementById("resumeInstruction").value = "";
+        openModal("runControlsModal");
+      }
+      function requestConfirmation(kind) {
+        state.confirmation = kind;
+        var isArchive = kind === "archive";
+        document.getElementById("confirmTitle").textContent = isArchive ? "Archive this session?" : "Cancel active run?";
+        document.getElementById("confirmText").textContent = isArchive
+          ? "The session will leave the active list. Its task, approvals, changes, and audit evidence will remain available."
+          : "Further tool work will stop at the next safe checkpoint. The task, proposed changes, and audit history will be retained.";
+        document.getElementById("confirmNote").textContent = isArchive
+          ? "Archive is reversible in the prototype and never deletes retained session evidence."
+          : "Cancellation does not revoke prior audit events or conceal a decision already recorded.";
+        document.getElementById("confirmButton").textContent = isArchive ? "Archive session" : "Cancel run";
+        openModal("confirmModal");
+      }
+      function resolveConfirmation() {
+        var confirmation = state.confirmation;
+        state.confirmation = null;
+        if (confirmation === "archive") {
+          setStage("archived");
+          closeModals(true);
+          showView("archive");
+          notify("Session archived. Its audit history and review data remain retained.");
+          return;
+        }
+        if (confirmation === "cancel") {
+          setStage("cancelled");
+          closeModals();
+          notify("Run cancelled at a safe checkpoint. No further tool action will occur.");
+        }
+      }
+      function resumeFromCheckpoint(instruction) {
+        var followUp = (instruction || "").trim();
+        if (followUp) {
+          state.task = state.task + "\nFollow-up: " + followUp;
+          document.getElementById("taskMessage").textContent = state.task;
+          document.getElementById("agentTime").textContent = "Just now";
+        }
+        closeModals(true);
+        showView("workspace");
+        setStage(state.mode === "plan" ? "plan" : "patch");
+        notify(followUp ? "Session resumed with your focused follow-up instruction." : "Session resumed from the last durable checkpoint.");
+        scrollChat();
+      }
+      function openLimits() {
+        applyLimitsToUi();
+        openModal("limitsModal");
+      }
+      function saveLimits() {
+        var duration = Number(document.getElementById("limitDuration").value);
+        var tools = Number(document.getElementById("limitTools").value);
+        var tokens = Number(document.getElementById("limitTokens").value);
+        var cost = Number(document.getElementById("limitCost").value);
+        var expiry = Number(document.getElementById("limitExpiry").value);
+        if (!duration || !tools || !tokens || !cost || !expiry) {
+          notify("Enter a positive value for every run limit.");
+          return;
+        }
+        state.limits = { duration: duration, tools: tools, tokens: tokens, cost: cost, expiry: expiry };
+        applyLimitsToUi();
+        setStage(state.stage);
+        closeModals();
+        notify("Session limits updated in the local prototype state.");
+      }
+      function openProviderValidation() {
+        document.getElementById("providerTitle").textContent = state.openRouterValidated ? "Review model profile validation" : "Validate OpenRouter profile";
+        document.getElementById("providerSubtitle").textContent = state.openRouterValidated
+          ? "The profile is marked validated in this prototype. Review the bounded checks below."
+          : "A bounded, non-destructive validation checks the configured OpenRouter profile.";
+        document.querySelector("#providerModal [data-action='complete-provider-validation']").textContent = state.openRouterValidated ? "Keep validated" : "Mark validated";
+        openModal("providerModal");
+      }
+      function completeProviderValidation() {
+        state.openRouterValidated = true;
+        document.getElementById("openRouterProfile").textContent = "OpenRouter · validated";
+        persistPrototypeState();
+        closeModals();
+        notify("OpenRouter profile marked validated for the local prototype.");
       }
       function scrollChat() {
         var scroller = document.getElementById("messageScroller");
@@ -1277,6 +1706,11 @@ apps/web/src/lib/pricing.spec.ts
         return '<button class="theme-card" data-action="theme" data-theme-choice="' + theme + '"><div class="theme-preview"><div class="preview-side"></div><div class="preview-main"><div class="preview-line"></div><div class="preview-line accent"></div><div class="preview-line"></div></div></div><strong>' + name + '</strong><span>' + detail + '</span></button>';
       }
       function settingsMarkup(category) {
+        var routerValidated = state.openRouterValidated;
+        var routerBadge = routerValidated ? '<span class="badge success">Validated</span>' : '<span class="badge warning">Needs validation</span>';
+        var routerAction = routerValidated ? "Review validation" : "Validate";
+        var readiness = routerValidated ? "3 validated profiles available" : "2 validated profiles available; one plan-only route needs validation";
+        var readinessBadge = routerValidated ? '<span class="badge success">Ready</span>' : '<span class="badge warning">Attention</span>';
         var content = {
           general:
             '<p class="settings-intro">Interface preferences apply to this trusted local prototype. Safety decisions remain inside the application boundary.</p><div class="settings-card">' +
@@ -1297,23 +1731,23 @@ apps/web/src/lib/pricing.spec.ts
             '<div class="settings-row"><div class="settings-copy"><h3>Read and search in boundary</h3><p>Allow inside registered roots; resolve canonical paths before every filesystem action.</p></div><span class="badge success">Allow</span></div>' +
             '<div class="settings-row"><div class="settings-copy"><h3>Write, patch, and test command</h3><p>Show exact preview and require a single-use operator approval.</p></div><span class="badge warning">Approve once</span></div>' +
             '<div class="settings-row"><div class="settings-copy"><h3>Delete, install, publish, commit, push, and network tools</h3><p>Disabled in the controlled MVP policy profile.</p></div><span class="badge" style="color:var(--danger);background:var(--danger-soft)">Deny</span></div></div>' +
-            '<div class="settings-card"><div class="settings-row"><div class="settings-copy"><h3>Run limits</h3><p>40 tool calls · 20 minutes · $2.00 estimated cost · 10 minute approval expiry</p></div><button class="button">Edit limits</button></div></div>',
+            '<div class="settings-card"><div class="settings-row"><div class="settings-copy"><h3>Run limits</h3><p>' + state.limits.tools + ' tool calls · ' + state.limits.duration + ' minutes · $' + Number(state.limits.cost).toFixed(2) + ' estimated cost · ' + state.limits.expiry + ' minute approval expiry</p></div><button class="button" data-action="open-limits">Edit limits</button></div></div>',
           runtime:
             '<p class="settings-intro">Health is exposed without credentials or unrestricted environment details. This is a management-friendly readiness view, not a secret store.</p><div class="settings-card">' +
             '<div class="settings-row"><div class="settings-copy"><h3>Application service</h3><p>ASP.NET application and SSE event stream</p></div><span class="badge success">Healthy</span></div>' +
             '<div class="settings-row"><div class="settings-copy"><h3>SQLite session store</h3><p>Session state, append-only audit events, changes, usage, and approvals</p></div><span class="badge success">Healthy</span></div>' +
             '<div class="settings-row"><div class="settings-copy"><h3>Workspace executor</h3><p>In-boundary worktree or container selection; outbound network blocked by default</p></div><span class="badge success">Ready</span></div>' +
-            '<div class="settings-row"><div class="settings-copy"><h3>Provider readiness</h3><p>2 validated profiles available; one plan-only route needs validation</p></div><span class="badge warning">Attention</span></div></div><button class="button" data-action="refresh-runtime">' + svg("refresh") + 'Refresh health</button>',
+            '<div class="settings-row"><div class="settings-copy"><h3>Provider readiness</h3><p>' + readiness + '</p></div>' + readinessBadge + '</div></div><button class="button" data-action="refresh-runtime">' + svg("refresh") + 'Refresh health</button>',
           providers:
             '<p class="settings-intro">Provider adapters turn provider-specific streaming and tool-call formats into one application-safe contract. Secrets stay server-side.</p><div class="provider-list">' +
-            '<div class="provider-row"><div class="provider-icon">' + svg("code") + '</div><div><h3>OpenCode Go</h3><p>Curated coding models · endpoint style selected per model</p></div><span class="badge success">Validated</span><button class="button small" data-action="validate-provider">Configure</button></div>' +
-            '<div class="provider-row"><div class="provider-icon">' + svg("spark") + '</div><div><h3>DeepSeek</h3><p>Primary coding profile · streaming and tool handling checked</p></div><span class="badge success">Validated</span><button class="button small" data-action="validate-provider">Configure</button></div>' +
-            '<div class="provider-row"><div class="provider-icon">' + svg("layers") + '</div><div><h3>OpenRouter</h3><p>Optional routed models · automatic fallback remains off</p></div><span class="badge warning">Needs validation</span><button class="button small" data-action="validate-provider">Validate</button></div></div>',
+            '<div class="provider-row"><div class="provider-icon">' + svg("code") + '</div><div><h3>OpenCode Go</h3><p>Curated coding models · endpoint style selected per model</p></div><span class="badge success">Validated</span><button class="button small" data-action="profile-added">Configure</button></div>' +
+            '<div class="provider-row"><div class="provider-icon">' + svg("spark") + '</div><div><h3>DeepSeek</h3><p>Primary coding profile · streaming and tool handling checked</p></div><span class="badge success">Validated</span><button class="button small" data-action="profile-added">Configure</button></div>' +
+            '<div class="provider-row"><div class="provider-icon">' + svg("layers") + '</div><div><h3>OpenRouter</h3><p>Optional routed models · automatic fallback remains off</p></div>' + routerBadge + '<button class="button small" data-action="open-provider-validation">' + routerAction + '</button></div></div>',
           models:
             '<p class="settings-intro">Only enabled and validated profiles can be selected for controlled execution. Availability is shown before a session starts.</p><div class="settings-card">' +
             '<div class="settings-row"><div class="settings-copy"><h3>DeepSeek Coder</h3><p>Primary execute profile · streaming, tools, and usage normalisation verified</p></div><span class="badge success">Enabled</span><button class="button small">Edit</button></div>' +
             '<div class="settings-row"><div class="settings-copy"><h3>OpenCode Go curated</h3><p>Execute profile · capability-routed coding models</p></div><span class="badge success">Enabled</span><button class="button small">Edit</button></div>' +
-            '<div class="settings-row"><div class="settings-copy"><h3>OpenRouter planning</h3><p>Plan only until a non-destructive validation succeeds</p></div><span class="badge warning">Gated</span><button class="button small">Validate</button></div></div><button class="button primary" data-action="profile-added">' + svg("plus") + 'Add model profile</button>'
+            '<div class="settings-row"><div class="settings-copy"><h3>OpenRouter planning</h3><p>' + (routerValidated ? "Validated profile available for configured routes" : "Plan only until a non-destructive validation succeeds") + '</p></div>' + (routerValidated ? '<span class="badge success">Enabled</span>' : '<span class="badge warning">Gated</span>') + '<button class="button small" data-action="open-provider-validation">' + routerAction + '</button></div></div><button class="button primary" data-action="profile-added">' + svg("plus") + 'Add model profile</button>'
         };
         return content[category] || content.general;
       }
@@ -1334,9 +1768,16 @@ apps/web/src/lib/pricing.spec.ts
         document.querySelectorAll(".theme-card").forEach(function (card) { card.classList.toggle("active", card.getAttribute("data-theme-choice") === theme); });
         notify("Theme changed to " + theme.charAt(0).toUpperCase() + theme.slice(1));
       }
-      function switchTab(tab) {
+      function switchTab(tab, fromRoute) {
+        state.tab = tab;
         document.querySelectorAll("[data-panel]").forEach(function (panel) { panel.classList.toggle("active", panel.getAttribute("data-panel") === tab); });
-        document.querySelectorAll("[data-tab]").forEach(function (button) { button.classList.toggle("active", button.getAttribute("data-tab") === tab); });
+        document.querySelectorAll("[data-tab]").forEach(function (button) {
+          var active = button.getAttribute("data-tab") === tab;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        persistPrototypeState();
+        if (!fromRoute && state.view === "session") syncRoute();
       }
       document.addEventListener("click", function (event) {
         var button = event.target.closest("[data-action]");
@@ -1348,7 +1789,7 @@ apps/web/src/lib/pricing.spec.ts
         }
         if (action === "close-mobile-sidebar") shell.classList.remove("sidebar-open");
         if (action === "go-view") showView(button.getAttribute("data-target"));
-        if (action === "open-new") openModal("newModal");
+        if (action === "open-new") { openModal("newModal"); setExplicitRoute("#/sessions/new"); }
         if (action === "close-modal") closeModals();
         if (action === "open-profile") openModal("profileModal");
         if (action === "open-command") openModal("commandModal");
@@ -1357,8 +1798,12 @@ apps/web/src/lib/pricing.spec.ts
           if (requested) state.admin = requested;
           openModal("settingsModal");
           renderSettings(state.admin);
+          setExplicitRoute(routeForAdmin(state.admin));
         }
-        if (action === "admin-category") renderSettings(button.getAttribute("data-category"));
+        if (action === "admin-category") {
+          renderSettings(button.getAttribute("data-category"));
+          setExplicitRoute(routeForAdmin(state.admin));
+        }
         if (action === "theme") applyTheme(button.getAttribute("data-theme-choice"));
         if (action === "switch") { button.classList.toggle("on"); notify(button.classList.contains("on") ? "Preference enabled" : "Preference disabled"); }
         if (action === "toggle-details") {
@@ -1369,13 +1814,34 @@ apps/web/src/lib/pricing.spec.ts
         if (action === "toggle-mode") { setMode(state.mode === "execute" ? "plan" : "execute"); notify(state.mode === "plan" ? "Plan-only mode selected. Writes and commands remain unavailable." : "Controlled execution selected. Sensitive actions need approval."); }
         if (action === "choose-model") notify("Select or validate model profiles in Administration → Model profiles.");
         if (action === "attach") notify("Attachment selection is represented in this prototype; use registered workspace context in the product.");
+        if (action === "open-run-controls") openRunControls();
+        if (action === "request-cancel") requestConfirmation("cancel");
+        if (action === "request-archive") requestConfirmation("archive");
+        if (action === "confirm-action") resolveConfirmation();
+        if (action === "resume-run") openRunControls();
+        if (action === "simulate-compaction") showContextCompaction();
+        if (action === "simulate-limit") { closeModals(true); showView("workspace"); setStage("limit"); notify("Configured-limit scenario displayed for prototype review."); }
+        if (action === "simulate-provider-error") { closeModals(true); showView("workspace"); setStage("provider-error"); notify("Recoverable provider-error scenario displayed for prototype review."); }
+        if (action === "simulate-interruption") { closeModals(true); showView("workspace"); setStage("interrupted"); notify("Interrupted-stream recovery scenario displayed for prototype review."); }
+        if (action === "open-limits") openLimits();
+        if (action === "open-provider-validation") openProviderValidation();
+        if (action === "complete-provider-validation") completeProviderValidation();
+        if (action === "open-admin-provider") { state.admin = "providers"; openModal("settingsModal"); renderSettings(state.admin); setExplicitRoute(routeForAdmin(state.admin)); }
+        if (action === "go-archive") showView("archive");
         if (action === "approve-patch") { setStage("test"); notify("Patch approved once and applied. The focused test awaits separate approval."); scrollChat(); }
         if (action === "deny-patch") { setStage("denied-patch"); notify("Patch denied. No files were changed."); scrollChat(); }
         if (action === "approve-test") { setStage("complete"); notify("Focused test completed successfully."); scrollChat(); }
         if (action === "deny-test") { setStage("denied-test"); notify("Test command denied. The patch remains available for review."); scrollChat(); }
         if (action === "show-session") { showView("session"); switchTab("activity"); }
         if (action === "show-complete-session") { setStage("complete"); showView("session"); switchTab("review"); }
-        if (action === "restore-archive") { setTitle("Audit checkout totals"); setStage("denied-patch"); document.getElementById("taskMessage").textContent = "Review checkout total discrepancies and propose a bounded repair."; showView("workspace"); notify("Archived session restored with preserved audit context."); }
+        if (action === "restore-archive") {
+          setTitle("Audit checkout totals", "Review checkout total discrepancies and propose a bounded repair.");
+          document.getElementById("taskMessage").textContent = state.task;
+          setStage("interrupted");
+          showView("workspace");
+          openRunControls();
+          notify("Archived session restored with preserved audit context. Add an optional follow-up before resuming.");
+        }
         if (action === "tab") switchTab(button.getAttribute("data-tab"));
         if (action === "range") {
           document.querySelectorAll("[data-range]").forEach(function (item) { item.classList.toggle("active", item === button); });
@@ -1385,10 +1851,9 @@ apps/web/src/lib/pricing.spec.ts
           notify("Statistics updated for the selected period.");
         }
         if (action === "export") notify("Export prepared as a management summary in this prototype.");
-        if (action === "validate-provider") notify("A non-destructive profile validation would be queued; secrets are never displayed.");
         if (action === "refresh-runtime") notify("Health refreshed: application, SQLite, executor, and 2 provider profiles are ready.");
         if (action === "workspace-added") notify("Workspace registration dialog would open here.");
-        if (action === "profile-added") notify("Model profile registration dialog would open here.");
+        if (action === "profile-added") notify("Model profile configuration is represented in this prototype; credential values are never displayed.");
       });
       document.getElementById("promptForm").addEventListener("submit", function (event) {
         event.preventDefault();
@@ -1402,11 +1867,31 @@ apps/web/src/lib/pricing.spec.ts
         event.preventDefault();
         var task = document.getElementById("newTask").value.trim();
         if (!task) { notify("Add a task before starting the session."); return; }
-        setMode(document.getElementById("modeSelect").value);
+        var selectedProfile = document.getElementById("profileSelect").value;
+        var selectedMode = document.getElementById("modeSelect").value;
+        var newCost = Number(document.getElementById("newMaxCost").value);
+        var newTools = Number(document.getElementById("newMaxTools").value);
+        if (!newCost || !newTools) { notify("Set a positive cost and tool-call limit before starting."); return; }
+        if (selectedProfile.indexOf("OpenRouter") !== -1 && !state.openRouterValidated && selectedMode !== "plan") {
+          notify("Validate OpenRouter first, or start this profile in plan-only mode.");
+          return;
+        }
+        state.limits.cost = newCost;
+        state.limits.tools = newTools;
+        setMode(selectedMode);
+        applyLimitsToUi();
         closeModals();
         showView("workspace");
         submitTask(task);
         document.getElementById("promptInput").value = "";
+      });
+      document.getElementById("resumeForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+        resumeFromCheckpoint(document.getElementById("resumeInstruction").value);
+      });
+      document.getElementById("limitsForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+        saveLimits();
       });
       document.addEventListener("keydown", function (event) {
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); openModal("commandModal"); }
@@ -1416,9 +1901,36 @@ apps/web/src/lib/pricing.spec.ts
         var saved = localStorage.getItem("sharpagent-theme");
         if (saved && ["studio", "midnight", "ocean", "forest"].indexOf(saved) !== -1) state.theme = saved;
       } catch (error) {}
+      try {
+        var savedSession = JSON.parse(localStorage.getItem("sharpagent-session-prototype") || "null");
+        var supportedStages = ["patch", "test", "complete", "denied-patch", "denied-test", "plan", "provider-error", "limit", "interrupted", "cancelled", "archived"];
+        if (savedSession && typeof savedSession === "object") {
+          if (supportedStages.indexOf(savedSession.stage) !== -1) state.stage = savedSession.stage;
+          if (savedSession.mode === "execute" || savedSession.mode === "plan") state.mode = savedSession.mode;
+          if (typeof savedSession.title === "string" && savedSession.title) state.title = savedSession.title;
+          if (typeof savedSession.task === "string" && savedSession.task) state.task = savedSession.task;
+          if (Number.isFinite(savedSession.contextCompactions) && savedSession.contextCompactions >= 0) state.contextCompactions = savedSession.contextCompactions;
+          state.openRouterValidated = savedSession.openRouterValidated === true;
+          if (savedSession.limits && typeof savedSession.limits === "object") {
+            var restored = savedSession.limits;
+            if (Number(restored.duration) > 0 && Number(restored.tools) > 0 && Number(restored.tokens) > 0 && Number(restored.cost) > 0 && Number(restored.expiry) > 0) {
+              state.limits = { duration: Number(restored.duration), tools: Number(restored.tools), tokens: Number(restored.tokens), cost: Number(restored.cost), expiry: Number(restored.expiry) };
+            }
+          }
+          if (["activity", "changes", "terminal", "review"].indexOf(savedSession.tab) !== -1) state.tab = savedSession.tab;
+        }
+      } catch (error) {}
       document.body.setAttribute("data-theme", state.theme);
-      setStage("patch");
+      setTitle(state.title, state.task);
+      document.getElementById("taskMessage").textContent = state.task;
+      if (state.openRouterValidated) document.getElementById("openRouterProfile").textContent = "OpenRouter · validated";
+      setMode(state.mode);
+      applyLimitsToUi();
+      setStage(state.stage);
       renderSettings("general");
+      if (window.location.hash) applyHashRoute(); else syncRoute();
+      window.addEventListener("hashchange", applyHashRoute);
+      window.addEventListener("popstate", applyHashRoute);
     }());
   </script>
 </body>

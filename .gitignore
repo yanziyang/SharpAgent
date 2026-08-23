@@ -39,6 +39,9 @@ ScaffoldingReadMe.txt
 # dotenv environment variables file
 .env
 
+# Local LLM credentials (never commit)
+LLM-Key.md
+
 # Others
 ~$*
 *~
