@@ -136,6 +136,10 @@ Use OpenCode Go PLan API Key in 'LLM-Key.md' for testing. Do not send this file 
 - Muse Spark 1.2 Contributor
 - MiMo-V2.5
 
+=======================================================
+-------------------------------------------------------
+Implementation
+-------------------------------------------------------
+Prompt:
 
-
-
+Follow the Implementation Plan in 'doc' to start the implementation.
