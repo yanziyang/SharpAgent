@@ -27,6 +27,12 @@ public sealed class SessionServiceFixture
 
     public MemoryIdempotencyStore Idempotency { get; } = new();
 
+    public MemoryApprovalRepository Approvals { get; } = new();
+
+    public MemoryChangeSetStore ChangeSets { get; } = new();
+
+    public MemoryToolExecutionRepository ToolExecutions { get; } = new();
+
     public PassThroughUnitOfWork UnitOfWork { get; } = new();
 
     public SessionService Service { get; }

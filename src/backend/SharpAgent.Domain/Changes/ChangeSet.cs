@@ -86,7 +86,7 @@ public sealed class FileChange
     /// <summary>Workspace-relative path (never an absolute machine path).</summary>
     public string RelativePath { get; init; } = string.Empty;
 
-    public FileChangeType ChangeType { get; init; }
+    public FileChangeType ChangeType { get; private set; }
 
     public string? BeforeHash { get; internal set; }
 
@@ -95,7 +95,10 @@ public sealed class FileChange
     /// <summary>Bounded unified diff text when size permits; null for binary files.</summary>
     public string? DiffText { get; internal set; }
 
-    public bool IsBinary { get; internal set; }
+    /// <summary>Bounded new content used by the MVP patch applier; binary files carry none.</summary>
+    public string? AfterContentText { get; internal set; }
+
+    public bool IsBinary { get; private set; }
 
     private FileChange()
     {
@@ -113,7 +116,45 @@ public sealed class FileChange
             ChangeSetId = changeSetId,
             RelativePath = relativePath,
             ChangeType = changeType,
-            IsBinary = changeType == FileChangeType.Deleted,
+            IsBinary = false,
         };
     }
+
+    /// <summary>Records proposal-time evidence: hashes, bounded diff and apply payload.</summary>
+    public void RecordProposalEvidence(
+        string? beforeHash,
+        string? afterHash,
+        string? diffText,
+        string? afterContentText,
+        DateTimeOffset nowUtc)
+    {
+        if (ChangeType == FileChangeType.Deleted)
+        {
+            IsBinary = true; // deletions have no textual content to show
+            AfterHash = null;
+            DiffText = null;
+            AfterContentText = null;
+            BeforeHash = beforeHash ?? string.Empty;
+            return;
+        }
+
+        if (afterContentText is null)
+        {
+            IsBinary = true;
+            AfterHash = afterHash;
+            DiffText = null;
+            BeforeHash = beforeHash ?? string.Empty;
+            return;
+        }
+
+        IsBinary = false;
+        AfterHash = afterHash;
+        DiffText = diffText;
+        BeforeHash = beforeHash ?? string.Empty;
+        AfterContentText = afterContentText.Length <= MaxContentLength
+            ? afterContentText
+            : throw new ArgumentException($"File content exceeds {MaxContentLength} characters.", nameof(afterContentText));
+    }
+
+    public const int MaxContentLength = 32_000;
 }

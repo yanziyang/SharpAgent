@@ -13,6 +13,7 @@ public sealed class ApprovalRequestTests
         string fingerprint = "fp_abc123") =>
         ApprovalRequest.Create(
             "run_1",
+            "ses_1",
             fingerprint,
             "apply_patch",
             "Update src/Pricing.tsx and its focused test.",
@@ -74,3 +75,4 @@ public sealed class ApprovalRequestTests
         Assert.Equal(ApprovalStatus.Denied, decided.Status);
     }
 }
+

@@ -1,4 +1,5 @@
 using SharpAgent.Domain.Auditing;
+using SharpAgent.Domain.Approvals;
 using SharpAgent.Domain.Idempotency;
 using SharpAgent.Domain.Policies;
 using SharpAgent.Domain.Profiles;
@@ -52,6 +53,20 @@ public interface ITodoRepository
     Task AddRangeAsync(IReadOnlyList<TodoItem> todos, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<TodoItem>> ListBySessionAsync(string sessionId, CancellationToken cancellationToken);
+}
+
+/// <summary>Approval aggregate persistence (single-use decisions are immutable once recorded).</summary>
+public interface IApprovalRequestRepository
+{
+    Task AddAsync(ApprovalRequest approval, CancellationToken cancellationToken);
+
+    Task<ApprovalRequest?> FindAsync(string approvalId, CancellationToken cancellationToken);
+
+    /// <summary>Pending approvals for a session ordered by creation time.</summary>
+    Task<IReadOnlyList<ApprovalRequest>> ListPendingBySessionAsync(string sessionId, CancellationToken cancellationToken);
+
+    /// <summary>The live pending approval for one run, if any.</summary>
+    Task<ApprovalRequest?> FindPendingByRunAsync(string runId, CancellationToken cancellationToken);
 }
 
 /// <summary>Append-only audit event storage (no update or delete operations exist).</summary>

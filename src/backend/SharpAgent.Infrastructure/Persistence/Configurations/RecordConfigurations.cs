@@ -55,17 +55,20 @@ internal sealed class ApprovalRequestConfiguration : IEntityTypeConfiguration<Ap
 
         builder.HasKey(static approval => approval.Id);
         builder.Property(static approval => approval.Id).HasMaxLength(64);
+        builder.Property(static approval => approval.SessionId).HasMaxLength(64);
         builder.Property(static approval => approval.RunId).HasMaxLength(64);
         builder.Property(static approval => approval.ActionFingerprint).HasMaxLength(128);
         builder.Property(static approval => approval.ActionType).HasMaxLength(64);
         builder.Property(static approval => approval.Summary).HasMaxLength(2_000);
         builder.Property(static approval => approval.AffectedPathsJson).HasMaxLength(8_000);
+        builder.Property(static approval => approval.RequestJson).HasMaxLength(32_000);
         builder.Property(static approval => approval.Reason).HasMaxLength(1_000);
 
         builder.Property(static approval => approval.Status).HasConversion<string>().HasMaxLength(16);
         builder.Property(static approval => approval.Decision).HasConversion<string>().HasMaxLength(16);
 
         builder.HasIndex(static approval => new { approval.RunId, approval.Status });
+        builder.HasIndex(static approval => new { approval.SessionId, approval.Status });
         builder.HasIndex(static approval => approval.ExpiresAtUtc);
     }
 }
@@ -162,3 +165,4 @@ internal sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(static record => record.ExpiresAtUtc);
     }
 }
+

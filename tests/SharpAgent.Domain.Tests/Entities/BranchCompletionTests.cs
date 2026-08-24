@@ -55,8 +55,9 @@ public sealed class BranchCompletionTests
     public void Approvals_without_reasons_are_valid()
     {
         var approval = ApprovalRequest.Create(
-            "run_1", "fp", "apply_patch", "summary", "[]",
-            reason: null,
+            "run_1",
+            "ses_1",
+            "fp", "apply_patch", "summary", "[]", null,
             Now,
             Now.AddMinutes(10));
 
@@ -95,4 +96,5 @@ public sealed class BranchCompletionTests
         Assert.Contains("completed", exception.Message, StringComparison.Ordinal);
     }
 }
+
 

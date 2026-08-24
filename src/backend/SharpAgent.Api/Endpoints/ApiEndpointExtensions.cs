@@ -19,8 +19,11 @@ public static class ApiEndpointExtensions
 
         endpoints
             .MapSessionEndpoints()
-            .MapWorkspaceAndCatalogEndpoints();
+            .MapWorkspaceAndCatalogEndpoints()
+            .MapApprovalEndpoints();
 
         return endpoints;
     }
 }
+
+

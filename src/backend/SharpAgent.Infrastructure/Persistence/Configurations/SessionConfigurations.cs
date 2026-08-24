@@ -55,6 +55,8 @@ internal sealed class AgentRunConfiguration : IEntityTypeConfiguration<AgentRun>
         builder.Property(static run => run.ExecutionEnvironmentId).HasMaxLength(128);
 
         builder.Property(static run => run.Status).HasConversion<string>().HasMaxLength(32);
+        builder.Property(static run => run.ExecutionEnvironmentId).HasMaxLength(128);
+        builder.Property(static run => run.WorktreePath).HasMaxLength(1_024);
 
         // One active run per session, enforced by the database itself.
         builder.HasIndex(static run => new { run.SessionId })

@@ -26,6 +26,8 @@ public sealed class ApprovalRequest
 
     public string RunId { get; init; } = string.Empty;
 
+    public string SessionId { get; init; } = string.Empty;
+
     /// <summary>Immutable fingerprint over run, action, workspace, content, environment, policy version.</summary>
     public string ActionFingerprint { get; init; } = string.Empty;
 
@@ -36,6 +38,9 @@ public sealed class ApprovalRequest
 
     /// <summary>JSON array of affected workspace-relative paths.</summary>
     public string AffectedPathsJson { get; init; } = "[]";
+
+    /// <summary>Immutable serialized proposal payload enabling exact re-execution after approval.</summary>
+    public string RequestJson { get; init; } = "{}";
 
     public string? Reason { get; init; }
 
@@ -55,13 +60,15 @@ public sealed class ApprovalRequest
 
     public static ApprovalRequest Create(
         string runId,
+        string sessionId,
         string actionFingerprint,
         string actionType,
         string summary,
         string affectedPathsJson,
         string? reason,
         DateTimeOffset nowUtc,
-        DateTimeOffset expiresAtUtc)
+        DateTimeOffset expiresAtUtc,
+        string requestJson = "{}")
     {
         if (string.IsNullOrWhiteSpace(actionFingerprint))
         {
@@ -75,11 +82,13 @@ public sealed class ApprovalRequest
 
         return new ApprovalRequest
         {
+            SessionId = sessionId,
             RunId = runId,
             ActionFingerprint = actionFingerprint,
             ActionType = actionType,
             Summary = summary,
             AffectedPathsJson = affectedPathsJson,
+            RequestJson = string.IsNullOrWhiteSpace(requestJson) ? "{}" : requestJson,
             Reason = reason,
             CreatedAtUtc = nowUtc,
             ExpiresAtUtc = expiresAtUtc,
@@ -118,3 +127,5 @@ public sealed class ApprovalRequest
         ResolvedAtUtc = nowUtc;
     }
 }
+
+

@@ -23,6 +23,9 @@ public sealed class AgentRun
     /// <summary>Worktree/container environment used by this run (Phase 2 records it).</summary>
     public string? ExecutionEnvironmentId { get; internal set; }
 
+    /// <summary>Disposable worktree path recorded as server-safe run evidence.</summary>
+    public string? WorktreePath { get; internal set; }
+
     public DateTimeOffset StartedAtUtc { get; init; }
 
     public DateTimeOffset? EndedAtUtc { get; internal set; }
@@ -106,10 +109,11 @@ public sealed class AgentRun
         CancelRequestedAtUtc = nowUtc;
     }
 
-    /// <summary>Records the worktree/container environment once execution starts (Phase 2).</summary>
-    public void AssignEnvironment(string environmentId)
+    /// <summary>Records the disposable worktree used by this run (Phase 2 evidence).</summary>
+    public void AssignEnvironment(string environmentId, string worktreePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(environmentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(worktreePath);
 
         if (!RunStateMachine.IsActive(Status))
         {
@@ -117,5 +121,6 @@ public sealed class AgentRun
         }
 
         ExecutionEnvironmentId = environmentId;
+        WorktreePath = worktreePath;
     }
 }

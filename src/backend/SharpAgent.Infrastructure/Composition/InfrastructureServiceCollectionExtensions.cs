@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Application.Health;
+using SharpAgent.Application.Tools;
 using SharpAgent.Infrastructure.Health;
 using SharpAgent.Infrastructure.Persistence;
 using SharpAgent.Infrastructure.Timing;
@@ -41,10 +42,24 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IModelProfileRepository, EfModelProfileRepository>();
         services.AddScoped<IPolicyProfileRepository, EfPolicyProfileRepository>();
         services.AddScoped<ITodoRepository, EfTodoRepository>();
+        services.AddScoped<IApprovalRequestRepository, EfApprovalRequestRepository>();
+        services.AddScoped<IChangeSetStore, EfChangeSetStore>();
+        services.AddScoped<IToolExecutionRepository, EfToolExecutionRepository>();
         services.AddScoped<IAuditEventRepository, EfAuditEventRepository>();
         services.AddScoped<IRunLeaseRepository, EfRunLeaseRepository>();
         services.AddScoped<IIdempotencyStore, EfIdempotencyStore>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+
+        // Tool execution edges and services.
+        services.AddSingleton(FocusedCommandCatalog.Default);
+        services.AddSingleton<PolicyEvaluator>();
+        services.AddSingleton<IWorkspacePathResolver, CanonicalPathResolver>();
+        services.AddSingleton<IWorkspaceFileAccess, BoundedFileAccess>();
+        services.AddSingleton<IProcessRunner, HardenedProcessRunner>();
+        services.AddSingleton<IGitWorktreeService, GitWorktreeService>();
+        services.AddScoped<WorkspaceToolService>();
+        services.AddScoped<ApprovalsService>();
+        services.AddScoped<ChangeSetService>();
 
         // Singletons/edge services.
         services.AddSingleton<IClock>(SystemClock.Instance);

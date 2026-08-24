@@ -76,11 +76,11 @@ public sealed class EnvironmentAssignmentTests
         var session = Domain.Sessions.Session.CreateNew("ws", "t", SessionMode.Execute, "m", "p", Now);
         var run = session.BeginRun(Now.AddMinutes(1));
 
-        run.AssignEnvironment("worktree-wt-42");
+        run.AssignEnvironment("worktree-wt-42", @"C:\wt\42");
 
         Assert.Equal("worktree-wt-42", run.ExecutionEnvironmentId);
 
-        Assert.Throws<ArgumentException>(() => run.AssignEnvironment(string.Empty));
+        Assert.Throws<ArgumentException>(() => run.AssignEnvironment(string.Empty, @"C:\wt\empty"));
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class EnvironmentAssignmentTests
         var run = session.BeginRun(Now.AddMinutes(1));
         run.Fail("boom", Now.AddMinutes(2));
 
-        Assert.Throws<InvalidStateTransitionException>(() => run.AssignEnvironment("wt-late"));
+        Assert.Throws<InvalidStateTransitionException>(() => run.AssignEnvironment("wt-late", @"C:\wt\late"));
     }
 }
 
@@ -249,3 +249,5 @@ public sealed class DomainIdFormatTests
         Assert.StartsWith("evt_0000000042_", eventId, StringComparison.Ordinal);
     }
 }
+
+

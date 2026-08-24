@@ -61,10 +61,13 @@ public sealed class ChangeSetTests
     }
 
     [Fact]
-    public void Deleted_files_default_to_binary_metadata()
+    public void Deleted_files_are_flagged_binary_when_evidence_is_recorded()
     {
         var changeSet = ChangeSet.CreateNew("run_1", Now);
         var deleted = changeSet.AddFile("a.bin", FileChangeType.Deleted, Now);
+
+        // Creation leaves the flag unset; recording proposal evidence marks deletions binary.
+        deleted.RecordProposalEvidence("hash", null, null, null, Now);
 
         Assert.True(deleted.IsBinary);
     }
