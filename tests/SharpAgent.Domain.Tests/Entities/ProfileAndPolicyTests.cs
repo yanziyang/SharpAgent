@@ -53,6 +53,21 @@ public sealed class ModelProfileTests
     }
 
     [Fact]
+    public void OpenRouter_stays_plan_only_until_validation_records_success()
+    {
+        var profile = ModelProfile.Register(ProviderKind.OpenRouter, "Some Router Model", "upstream-id", EndpointKind.ChatCompletions, Now);
+        profile.Enable(Now);
+
+        Assert.False(profile.CanPlan(), "OpenRouter must not plan before validation succeeds.");
+        Assert.False(profile.CanExecute());
+
+        profile.MarkValidated(new ProfileCapabilities(true, true, 128_000, null, null), "ok", Now);
+
+        Assert.True(profile.CanPlan());
+        Assert.True(profile.CanExecute(), "A validated streaming+tool profile is eligible like any other.");
+    }
+
+    [Fact]
     public void Failed_validation_blocks_both_modes_and_disable_blocks_everything()
     {
         var failed = NewProfile();

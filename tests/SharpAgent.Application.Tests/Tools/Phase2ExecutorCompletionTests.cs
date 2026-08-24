@@ -142,6 +142,26 @@ public sealed class Phase2ExecutorCompletionTests : IDisposable
         Assert.Contains("find.txt:3:", executed.OutputPreview, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Repository_status_executes_git_status_through_the_catalog()
+    {
+        var fixture = await NewStartedExecuteFixtureAsync();
+        fixture.WorkspaceRootIs(_workspace.RootPath);
+        fixture.Fakes.ProcessRunner.Handler = request =>
+            new ProcessExecutionResult(0, " M src/file.cs", false, false, false);
+
+        var proposal = await fixture.Tools!.ProposeAsync(new ToolProposal(
+            fixture.SessionId!, fixture.RunId!, fixture.WorkspaceId!,
+            ToolAction.RepositoryStatus,
+            RelativePath: "."));
+
+        var executed = Assert.IsType<ToolProposalResult.Executed>(proposal);
+        var request = Assert.Single(fixture.Fakes.ProcessRunner.Requests);
+        Assert.Equal("git", request.Executable);
+        Assert.Contains("status", request.Arguments);
+        Assert.Contains(" M src/file.cs", executed.OutputPreview, StringComparison.Ordinal);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static ChangeSet NewChangeSetWithContent(

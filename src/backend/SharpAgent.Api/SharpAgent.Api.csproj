@@ -5,6 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SharpAgent.Application\SharpAgent.Application.csproj" />
     <ProjectReference Include="..\SharpAgent.Infrastructure\SharpAgent.Infrastructure.csproj" />
+    <ProjectReference Include="..\SharpAgent.Providers\SharpAgent.Providers.csproj" />
     <ProjectReference Include="..\SharpAgent.Runtime.Maf\SharpAgent.Runtime.Maf.csproj" />
   </ItemGroup>
 </Project>

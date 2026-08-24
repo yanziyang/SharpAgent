@@ -279,7 +279,7 @@ try {
     Invoke-QualityStep -Name "Backend coverage thresholds ($CoverageThresholdPercent%)" {
         $assemblies = Get-CoverageFromCobertura -CoverageDirectory $coverageDirectory
         Assert-CoverageGroup -Assemblies $assemblies -Names @('SharpAgent.Domain', 'SharpAgent.Application') -Label 'Domain+Application'
-        Assert-CoverageGroup -Assemblies $assemblies -Names @('SharpAgent.Infrastructure', 'SharpAgent.Runtime.Maf', 'SharpAgent.Api') -Label 'Infrastructure+Runtime+API'
+        Assert-CoverageGroup -Assemblies $assemblies -Names @('SharpAgent.Infrastructure', 'SharpAgent.Runtime.Maf', 'SharpAgent.Api', 'SharpAgent.Providers') -Label 'Infrastructure+Runtime+API'
     }
 
     Invoke-QualityStep -Name 'SQLite migration verification' {

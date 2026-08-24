@@ -24,6 +24,19 @@ public sealed class LiveProviderFactAttribute : FactAttribute
     }
 }
 
+/// <summary>The Theory variant: skips at discovery unless explicitly opted in locally.</summary>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+public sealed class LiveProviderTheoryAttribute : TheoryAttribute
+{
+    public LiveProviderTheoryAttribute()
+    {
+        if (!LiveOptin.TryGetSkipReason(out var reason))
+        {
+            Skip = reason;
+        }
+    }
+}
+
 public static class LiveOptin
 {
     /// <summary>Returns true when live tests may run; otherwise a safe skip reason.</summary>

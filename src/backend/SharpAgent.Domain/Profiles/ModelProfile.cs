@@ -136,9 +136,13 @@ public sealed class ModelProfile
 
     /// <summary>
     /// Enabled profiles may plan; only failed validation blocks planning outright.
-    /// Unvalidated profiles stay plan-only until validation declares capabilities (E2E-08).
+    /// OpenRouter stays plan-only until a validation run records successful
+    /// compatible behavior (FR-052, design section 7.2).
     /// </summary>
-    public bool CanPlan() => Enabled && ValidationStatus != ValidationStatus.Failed;
+    public bool CanPlan() =>
+        Enabled
+        && ValidationStatus != ValidationStatus.Failed
+        && (Provider != ProviderKind.OpenRouter || ValidationStatus == ValidationStatus.Validated);
 
     public void MarkValidated(ProfileCapabilities capabilities, string? safeMessage, DateTimeOffset nowUtc)
     {

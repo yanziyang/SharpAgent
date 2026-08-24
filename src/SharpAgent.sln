@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpAgent.Provider.Contrac
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpAgent.LiveProviderTests", "..\tests\SharpAgent.LiveProviderTests\SharpAgent.LiveProviderTests.csproj", "{C6C43E53-2DA3-4FFD-8857-5C53C0F19157}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpAgent.Providers", "backend\SharpAgent.Providers\SharpAgent.Providers.csproj", "{607C2493-D513-420F-A2F0-3CD503D58C0F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -183,6 +185,18 @@ Global
 		{C6C43E53-2DA3-4FFD-8857-5C53C0F19157}.Release|x64.Build.0 = Release|Any CPU
 		{C6C43E53-2DA3-4FFD-8857-5C53C0F19157}.Release|x86.ActiveCfg = Release|Any CPU
 		{C6C43E53-2DA3-4FFD-8857-5C53C0F19157}.Release|x86.Build.0 = Release|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Debug|x64.Build.0 = Debug|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Debug|x86.Build.0 = Debug|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Release|x64.ActiveCfg = Release|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Release|x64.Build.0 = Release|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Release|x86.ActiveCfg = Release|Any CPU
+		{607C2493-D513-420F-A2F0-3CD503D58C0F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -193,5 +207,6 @@ Global
 		{F882D47D-9850-4275-8864-630A68A88CD4} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
 		{80A3ED30-BD46-4199-A4F8-2DBF58852A57} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
 		{8D60B4C3-C5E3-4F3B-A9D2-5D64D0417BCE} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
+		{607C2493-D513-420F-A2F0-3CD503D58C0F} = {1AE8ACA6-933B-BF2A-3671-3E2EAC007D16}
 	EndGlobalSection
 EndGlobal

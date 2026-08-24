@@ -5,6 +5,7 @@ using SharpAgent.Api.Endpoints;
 using SharpAgent.Api.ErrorHandling;
 using SharpAgent.Api.Startup;
 using SharpAgent.Application;
+using SharpAgent.Providers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ builder.Services.ConfigureHttpJsonOptions(static options =>
         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
 });
 builder.Services.AddApplicationServices();
+builder.Services.AddProviderAdapters();
 builder.Services.AddSharpAgentServices(builder.Configuration);
 builder.Services.AddHostedService<PersistenceStartupService>();
 

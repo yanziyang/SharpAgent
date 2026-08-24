@@ -16,6 +16,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<SessionService>();
         services.AddScoped<WorkspaceService>();
         services.AddScoped<CatalogService>();
+        services.AddScoped<ProfileValidationService>();
 
         // IdempotencyService is constructed by consumers with their store; expose factory defaults.
         services.AddSingleton(sp => new IdempotencyOptions());

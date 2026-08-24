@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\backend\SharpAgent.Application\SharpAgent.Application.csproj" />
+    <ProjectReference Include="..\..\src\backend\SharpAgent.Providers\SharpAgent.Providers.csproj" />
     <ProjectReference Include="..\SharpAgent.TestKit\SharpAgent.TestKit.csproj" />
   </ItemGroup>
   <ItemGroup>
