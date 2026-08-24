@@ -35,6 +35,8 @@ public sealed class SessionServiceFixture
 
     public PassThroughUnitOfWork UnitOfWork { get; } = new();
 
+    public NullWorktreeService Worktrees { get; } = new();
+
     public SessionService Service { get; }
 
     public string WorkspaceId { get; }
@@ -89,8 +91,11 @@ public sealed class SessionServiceFixture
             Todos,
             Events,
             Leases,
+            Worktrees,
             Idempotency,
             UnitOfWork,
             Clock);
     }
 }
+
+

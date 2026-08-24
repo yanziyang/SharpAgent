@@ -77,14 +77,8 @@ public sealed class PolicyEvaluator
             return new PolicyDecision(PolicyOutcome.Allow, $"{action}:allow", "Read-only in-boundary action.");
         }
 
-        if (!ApprovalActions.Contains(action))
-        {
-            return new PolicyDecision(
-                PolicyOutcome.Deny,
-                $"{action}:default_deny",
-                "This action category is denied in the MVP.");
-        }
-
+        // Unknown action categories fall through to require_approval (fail closed):
+        // they must be explicitly classified before any executor is reachable.
         return new PolicyDecision(PolicyOutcome.RequireApproval, $"{action}:require_approval", "This action requires explicit approval.");
     }
 

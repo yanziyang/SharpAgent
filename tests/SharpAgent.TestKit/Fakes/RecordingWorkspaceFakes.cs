@@ -242,5 +242,16 @@ public sealed class RecordingWorktreeService(string baseRoot) : IGitWorktreeServ
     }
 }
 
+/// <summary>
+/// Stand-in for environments where tests never exercise worktrees; creation is a
+/// hard failure so accidental dependencies surface immediately.
+/// </summary>
+public sealed class NullWorktreeService : IGitWorktreeService
+{
+    public bool Exists(string worktreePath) => false;
 
+    public Task<WorktreeInfo> CreateAsync(string baseRepositoryRoot, string runId, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("This fixture does not support worktrees.");
 
+    public Task RemoveAsync(WorktreeInfo worktree, CancellationToken cancellationToken) => Task.CompletedTask;
+}

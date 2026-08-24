@@ -1,3 +1,4 @@
+using SharpAgent.TestKit.Fakes;
 using SharpAgent.Infrastructure.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,7 +49,7 @@ public sealed class DbInitializerSweepTests : IDisposable
             .AddInterceptors(new SqlitePragmaInterceptor())
             .Options;
         var factory = new DbContextFactoryStub(factoryOptions);
-        await new DbInitializer(factory).InitializeAsync();
+        await new DbInitializer(factory, new NullWorktreeService()).InitializeAsync();
 
         await using (var verify = _database.OpenContext())
         {
@@ -94,7 +95,7 @@ public sealed class DbInitializerSweepTests : IDisposable
                 .Options);
 
         var exception = await Record.ExceptionAsync(
-            () => new DbInitializer(factory).InitializeAsync());
+            () => new DbInitializer(factory, new NullWorktreeService()).InitializeAsync());
 
         Assert.Null(exception);
     }
@@ -110,6 +111,8 @@ internal sealed class DbContextFactoryStub(DbContextOptions<SharpAgentDbContext>
     public Task<SharpAgentDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(CreateDbContext());
 }
+
+
 
 
 

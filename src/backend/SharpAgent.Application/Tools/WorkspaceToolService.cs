@@ -450,7 +450,7 @@ public sealed class WorkspaceToolService(
 
     // ------------------------------------------------------------------ summary + audit
 
-    private static string BuildSummary(ToolProposal proposal, IReadOnlyList<ResolvedTarget> targets) => proposal.Action switch
+    public static string BuildSummary(ToolProposal proposal, IReadOnlyList<ResolvedTarget> targets) => proposal.Action switch
     {
         ToolAction.ReadFile => $"Read {proposal.RelativePath}.",
         ToolAction.ListDirectory => $"List directory {proposal.RelativePath}.",
@@ -487,6 +487,7 @@ public sealed record BoundaryRoots(string BoundaryForReads, string? Worktree)
 {
     public string ExecutionRoot => Worktree ?? BoundaryForReads;
 }
+
 
 
 

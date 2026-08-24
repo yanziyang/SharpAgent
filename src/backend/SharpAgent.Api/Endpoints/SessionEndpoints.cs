@@ -1,5 +1,7 @@
+using SharpAgent.Application.Tools;
 using Microsoft.AspNetCore.Mvc;
 using SharpAgent.Application.Abstractions;
+using SharpAgent.Application.Common;
 using SharpAgent.Application.Sessions;
 
 namespace SharpAgent.Api.Endpoints;
@@ -141,6 +143,56 @@ public static class SessionEndpoints
             async (string sessionId, SessionService sessionService, CancellationToken cancellationToken) =>
                 Results.Ok(await sessionService.ReplayEventsAsync(sessionId, cancellationToken).ConfigureAwait(false)));
 
+        sessions.MapGet(
+            "/{sessionId}/approvals/pending",
+            async (string sessionId, ApprovalsService approvalsService, CancellationToken cancellationToken) =>
+                Results.Ok(await approvalsService.ListPendingAsync(sessionId, cancellationToken).ConfigureAwait(false)));
+
+        sessions.MapGet(
+            "/{sessionId}/changes",
+            async (
+                string sessionId,
+                ISessionRepository sessionRepository,
+                IChangeSetStore changeSetStore,
+                CancellationToken cancellationToken) =>
+            {
+                var session = await sessionRepository.FindAsync(sessionId, cancellationToken).ConfigureAwait(false);
+                if (session is null)
+                {
+                    return Results.Problem(
+                        title: $"Session '{sessionId}' was not found.",
+                        statusCode: StatusCodes.Status404NotFound,
+                        extensions: new Dictionary<string, object?> { ["code"] = "not_found" });
+                }
+
+                var changeSets = new List<object>();
+                foreach (var run in session.Runs.OrderBy(static candidate => candidate.Sequence))
+                {
+                    foreach (var changeSet in await changeSetStore.ListByRunAsync(run.Id, cancellationToken).ConfigureAwait(false))
+                    {
+                        changeSets.Add(new
+                        {
+                            changeSet.Id,
+                            runId = changeSet.RunId,
+                            status = changeSet.Status.ToString(),
+                            summary = changeSet.Summary,
+                            createdAtUtc = changeSet.CreatedAtUtc,
+                            files = changeSet.Files.Select(static file => new
+                            {
+                                path = file.RelativePath,
+                                changeType = file.ChangeType.ToString(),
+                                binary = file.IsBinary,
+                                diffPreview = file.DiffText,
+                            }),
+                        });
+                    }
+                }
+
+                return Results.Ok(changeSets);
+            });
+
         return endpoints;
     }
 }
+
+

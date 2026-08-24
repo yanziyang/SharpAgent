@@ -20,6 +20,7 @@ public sealed class SessionService(
     ITodoRepository todos,
     IAuditEventRepository events,
     IRunLeaseRepository leases,
+    IGitWorktreeService worktrees,
     IIdempotencyStore idempotencyStore,
     IUnitOfWork unitOfWork,
     IClock clock)
@@ -166,6 +167,7 @@ public sealed class SessionService(
                 session.CancelActiveRun("Cancelled by developer.", clock.UtcNow);
                 await leases.ReleaseForRunAsync(cancelledRunId!, clock.UtcNow, transactionCancellationToken)
                     .ConfigureAwait(false);
+                await RemoveWorktreeAsync(session, cancelledRunId!, transactionCancellationToken).ConfigureAwait(false);
 
                 await AppendEventAsync(
                     session,
@@ -369,6 +371,31 @@ public sealed class SessionService(
         await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Terminal runs lose their disposable worktree; evidence stays in audit rows.</summary>
+    private async Task RemoveWorktreeAsync(
+        Domain.Sessions.Session session,
+        string runId,
+        CancellationToken cancellationToken)
+    {
+        var run = session.Runs.FirstOrDefault(candidate => candidate.Id == runId);
+        if (run is null || string.IsNullOrEmpty(run.WorktreePath))
+        {
+            return;
+        }
+
+        try
+        {
+            await worktrees.RemoveAsync(
+                    new WorktreeInfo(run.ExecutionEnvironmentId ?? "wt", run.WorktreePath),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Cleanup is best-effort; retention sweeps handle leftovers later.
+        }
+    }
+
     public static SessionDto Project(Domain.Sessions.Session session) => new(
         session.Id,
         session.WorkspaceId,
@@ -406,6 +433,9 @@ public sealed class SessionService(
 }
 
 public sealed record StartRunResult(SessionDto Session, RunDto Run);
+
+
+
 
 
 

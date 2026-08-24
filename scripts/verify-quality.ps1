@@ -67,27 +67,26 @@ function Get-CoverageFromCobertura {
     <#
         Aggregates all cobertura files under a directory into per-assembly coverage.
 
-        The same production assembly is instrumented by several test-project runs
-        (e.g. Application by Application.Tests AND Api.IntegrationTests). Runs where
-        an assembly was loaded but barely executed must not dilute results, so this
-        merger UNIONS observations per line/condition/method instead of summing runs:
+        The same production assembly is instrumented by several test-project runs;
+        this merger UNIONS observations so a run that loaded but did not execute a
+        class can never dilute results:
 
           - line     : covered when hits > 0 in ANY run
-          - condition: best percentage observed across runs (coverlet emits "%")
+          - branch   : best percentage observed across runs (coverlet emits "%")
           - method   : visited when any of its lines executed in ANY run
+
+        Documented exclusions: EF migrations (verified by the migration step),
+        obj/ generated code, compiler-generated async state machines.
     #>
     param([string]$CoverageDirectory)
 
     function ConvertTo-Percent {
         param([string]$Text)
-        if ($Text -match '(\d+(?:\.\d+)?)\s*%') {
-            return [double]$Matches[1]
-        }
-
+        if ($Text -match '(\d+(?:\.\d+)?)\s*%') { return [double]$Matches[1] }
         return 0.0
     }
 
-    # class identity -> unioned observation set
+    # Class identity -> unioned observation set
     $classes = @{}
 
     foreach ($file in (Get-ChildItem -LiteralPath $CoverageDirectory -Recurse -Filter '*.cobertura.xml')) {
@@ -102,12 +101,6 @@ function Get-CoverageFromCobertura {
 
             foreach ($class in @($package.SelectNodes('classes/class'))) {
                 if ($null -eq $class) { continue }
-
-                # Documented exclusions:
-                #   - EF migrations      : verified by the dedicated migration step.
-                #   - obj/ generated code: source generators' output, not hand-written product code.
-                #   - <...>d__* classes  : compiler-generated async state machines; their jump
-                #     conditions mirror hand-written await logic already measured on source lines.
                 if ($class.filename -match '[\\/]Persistence[\\/]Migrations[\\/]') { continue }
                 if ($class.filename -match '[\\/]obj[\\/]') { continue }
                 if ($class.name -match '<>|d__') { continue }
@@ -115,10 +108,7 @@ function Get-CoverageFromCobertura {
                 $classKey = "$assemblyName|$($class.name)"
                 if (-not $classes.ContainsKey($classKey)) {
                     $classes[$classKey] = @{
-                        Assembly   = $assemblyName
-                        Lines      = @{}
-                        Conditions = @{}
-                        Methods    = @{}
+                        Assembly = $assemblyName; Lines = @{}; Conditions = @{}; Methods = @{}
                     }
                 }
                 $entry = $classes[$classKey]
@@ -135,9 +125,8 @@ function Get-CoverageFromCobertura {
                     if ([string]::Equals([string]$line.branch, 'true', [System.StringComparison]::OrdinalIgnoreCase)) {
                         foreach ($condition in @($line.SelectNodes('conditions/condition'))) {
                             if ($null -eq $condition) { continue }
-
                             $conditionKey = '{0}|{1}' -f $condition.number, $condition.type
-                            $percent = ConvertTo-Percent -Text ([string]$condition.coverage)
+                            $percent = ConvertTo-Percent ([string]$condition.coverage)
                             if (-not $entry.Conditions.ContainsKey($conditionKey) -or [double]$entry.Conditions[$conditionKey] -lt $percent) {
                                 $entry.Conditions[$conditionKey] = $percent
                             }
@@ -147,16 +136,21 @@ function Get-CoverageFromCobertura {
 
                 foreach ($method in @($class.SelectNodes('methods/method'))) {
                     if ($null -eq $method) { continue }
-
                     $methodKey = '{0}|{1}' -f $method.name, $method.signature
                     $visited = $false
                     foreach ($line in @($method.SelectNodes('lines/line'))) {
-                        if ($null -ne $line -and [double]$line.hits -gt 0) {
-                            $visited = $true
-                            break
-                        }
-                    }
+                        if ($null -eq $line) { continue }
 
+                        # Some coverlet versions attribute hits ONLY at method level;
+                        # fold them into line coverage so lines never under-report.
+                        $number = [string]$line.number
+                        $hits = [double]$line.hits
+                        if (-not $entry.Lines.ContainsKey($number) -or [double]$entry.Lines[$number] -lt $hits) {
+                            $entry.Lines[$number] = $hits
+                        }
+
+                        if ($hits -gt 0) { $visited = $true; break }
+                    }
                     if (-not $entry.Methods.ContainsKey($methodKey)) {
                         $entry.Methods[$methodKey] = $visited
                     } elseif ($visited) {
@@ -177,26 +171,19 @@ function Get-CoverageFromCobertura {
                 Method = @{ Covered = 0.0; Valid = 0.0 }
             }
         }
-
         $stats = $assemblies[$name]
+
         foreach ($hits in $entry.Lines.Values) {
             $stats.Line.Valid += 1.0
-            if ([double]$hits -gt 0) {
-                $stats.Line.Covered += 1.0
-            }
+            if ([double]$hits -gt 0) { $stats.Line.Covered += 1.0 }
         }
-
-        # Each condition contributes proportionally to its observed branch percentage.
         foreach ($percent in $entry.Conditions.Values) {
             $stats.Branch.Valid += 100.0
             $stats.Branch.Covered += [double]$percent
         }
-
         foreach ($visited in $entry.Methods.Values) {
             $stats.Method.Valid += 1.0
-            if ([bool]$visited) {
-                $stats.Method.Covered += 1.0
-            }
+            if ([bool]$visited) { $stats.Method.Covered += 1.0 }
         }
     }
 
@@ -212,28 +199,29 @@ function Assert-CoverageGroup {
     $evaluated = 0
     $rows = @()
 
-    foreach ($name in $Names) {
-        if (-not $Assemblies.ContainsKey($name)) {
-            $rows += "  N/A   $name (not instrumented yet)"
-            continue
-        }
-
-        $stats = $Assemblies[$name]
-        if ($stats.Line.Valid -eq 0) {
-            $rows += "  N/A   $name (zero instrumentable lines)"
-            continue
-        }
-
-        $evaluated++
-        foreach ($metric in 'Line', 'Branch', 'Method') {
-            $valid = $stats[$metric].Valid
-            if ($valid -eq 0) {
-                $rows += "  N/A   $metric coverage for $name (no measurable units)"
+        foreach ($name in $Names) {
+            if (-not $Assemblies.ContainsKey($name)) {
+                $rows += "  N/A   $name (not instrumented yet)"
                 continue
             }
 
-            $percent = [Math]::Round(100 * $stats[$metric].Covered / $valid, 2)
-            $ok = $percent -ge $CoverageThresholdPercent
+            $stats = $Assemblies[$name]
+            if ($stats.Line.Valid -eq 0 -or $stats.Line.Covered -eq 0) {
+                $rows += "  N/A   $name (zero instrumentable lines)"
+                continue
+            }
+
+            $evaluated++
+            foreach ($metric in 'Line', 'Branch', 'Method') {
+                $valid = $stats[$metric].Valid
+                if ($valid -eq 0) {
+                    $rows += "  N/A   {0,-6} coverage for {1} (no measurable units)" -f $metric, $name
+                    continue
+                }
+
+                # Rates arrive as percentages already (Line/Branch = rate*100).
+                $percent = [Math]::Round($stats[$metric].Covered, 2)
+                $ok = $percent -ge $CoverageThresholdPercent
             $marker = $ok ? 'OK  ' : 'FAIL'
             $rows += ("  {0} {1,-6} {2} = {3}% (threshold {4}%)" -f $marker, $metric, $name, $percent, $CoverageThresholdPercent)
             if (-not $ok) {
@@ -383,4 +371,6 @@ try {
 }
 
 exit 0
+
+
 

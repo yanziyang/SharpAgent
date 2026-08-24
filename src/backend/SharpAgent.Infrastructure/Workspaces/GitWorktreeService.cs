@@ -9,6 +9,10 @@ namespace SharpAgent.Infrastructure.Workspaces;
 /// </summary>
 public sealed class GitWorktreeService : IGitWorktreeService
 {
+    // One-service-process deployment (design section 4.3): caching the base root
+    // here lets removal run git against the MAIN repo even while deleting a child.
+    private string? lastKnownBaseRoot;
+
     public bool Exists(string worktreePath) =>
         !string.IsNullOrWhiteSpace(worktreePath) && Directory.Exists(worktreePath);
 
@@ -18,6 +22,7 @@ public sealed class GitWorktreeService : IGitWorktreeService
         var parent = Path.Combine(Path.GetTempPath(), "sharpagent-worktrees");
         Directory.CreateDirectory(parent);
         var worktreePath = Path.Combine(parent, environmentId);
+        lastKnownBaseRoot = baseRepositoryRoot;
 
         if (!Directory.Exists(worktreePath))
         {
@@ -30,21 +35,72 @@ public sealed class GitWorktreeService : IGitWorktreeService
 
     public Task RemoveAsync(WorktreeInfo worktree, CancellationToken cancellationToken)
     {
-        if (Directory.Exists(worktree.Path))
+        if (!Directory.Exists(worktree.Path))
         {
-            // Detached worktrees have no branch to clean; --force discards contents.
-            try
-            {
-                Git(worktree.Path, ["worktree", "remove", "--force", worktree.Path], TimeSpan.FromSeconds(60));
-            }
-            catch (ProcessFailedException)
-            {
-                // Fall back to direct deletion when the metadata is already gone.
-                Directory.Delete(worktree.Path, recursive: true);
-            }
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            // Must run from the MAIN repository; running from inside the worktree
+            // being removed makes git refuse.
+            var mainRepo = lastKnownBaseRoot
+                           ?? FindMainRepository(worktree.Path)
+                           ?? throw new ProcessFailedException("Main repository root unknown; cannot remove worktree.");
+            Git(mainRepo, ["worktree", "remove", "--force", worktree.Path], TimeSpan.FromSeconds(60));
+        }
+        catch (ProcessFailedException)
+        {
+            TryForceDelete(worktree.Path);
+        }
+        catch (InvalidOperationException)
+        {
+            TryForceDelete(worktree.Path);
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>Git marks object files read-only; strip attributes before recursive delete.</summary>
+    private static void TryForceDelete(string path)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+            }
+
+            Directory.Delete(path, recursive: true);
+        }
+        catch (IOException)
+        {
+            // Retention sweeps handle leftovers later.
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static string? FindMainRepository(string worktreePath)
+    {
+        var dotGit = Path.Combine(worktreePath, ".git");
+        if (!File.Exists(dotGit))
+        {
+            return null;
+        }
+
+        // Worktree .git files read like: "gitdir: <main>/.git/worktrees/<name>"
+        var line = File.ReadAllText(dotGit);
+        var marker = "gitdir:";
+        if (!line.StartsWith(marker, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var gitDir = line[marker.Length..].Trim();
+        var worktreesIndex = gitDir.IndexOf($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}worktrees", StringComparison.OrdinalIgnoreCase);
+        return worktreesIndex < 0 ? null : gitDir[..worktreesIndex];
     }
 
     private static void Git(string workingDirectory, IReadOnlyList<string> arguments, TimeSpan timeout)
@@ -80,7 +136,7 @@ public sealed class GitWorktreeService : IGitWorktreeService
 
         if (process.ExitCode != 0)
         {
-            throw new ProcessFailedException($"git failed with exit code {process.ExitCode}.");
+            throw new ProcessFailedException($"git failed with exit code {process.ExitCode}: {error.Result.Trim()}");
         }
     }
 
@@ -90,4 +146,5 @@ public sealed class GitWorktreeService : IGitWorktreeService
 
     private sealed class ProcessFailedException(string message) : Exception(message);
 }
+
 

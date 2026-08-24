@@ -59,3 +59,4 @@ public abstract record ToolProposalResult
         DateTimeOffset ExpiresAtUtc) : ToolProposalResult;
 }
 
+

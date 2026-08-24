@@ -47,7 +47,7 @@ public sealed class EfChangeSetStore(SharpAgentDbContext context) : IChangeSetSt
     public async Task<IReadOnlyList<ChangeSet>> ListByRunAsync(string runId, CancellationToken cancellationToken)
     {
         var list = await context.ChangeSets
-            .AsNoTracking()
+            .Include(static changeSet => changeSet.Files)
             .Where(changeSet => changeSet.RunId == runId)
             .OrderBy(static changeSet => changeSet.CreatedAtUtc)
             .ToListAsync(cancellationToken)

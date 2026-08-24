@@ -10,7 +10,7 @@ namespace SharpAgent.Infrastructure.Persistence;
 /// Startup persistence tasks: apply migrations, sweep abandoned runs to interrupted
 /// (design section 5.2), and prune expired idempotency keys.
 /// </summary>
-public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> contextFactory)
+public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> contextFactory, IGitWorktreeService worktrees)
 {
     public const string RestartedReason = "Service restarted while the run was active.";
 
@@ -31,7 +31,7 @@ public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> context
     }
 
     /// <summary>Any run left active by a previous process becomes interrupted and resumable.</summary>
-    private static async Task SweepAbandonedRunsAsync(SharpAgentDbContext context, CancellationToken cancellationToken)
+    private async Task SweepAbandonedRunsAsync(SharpAgentDbContext context, CancellationToken cancellationToken)
     {
         var activeSessionIds = await context.Sessions
             .Where(session => session.ActiveRunId != null)
@@ -73,6 +73,22 @@ public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> context
                 lease.Release(now);
             }
 
+            var abandonedRun = session.Runs.FirstOrDefault(candidate => candidate.Id == abandonedRunId);
+            if (abandonedRun is not null && !string.IsNullOrEmpty(abandonedRun.WorktreePath))
+            {
+                try
+                {
+                    await worktrees.RemoveAsync(
+                            new WorktreeInfo(abandonedRun.ExecutionEnvironmentId ?? "wt", abandonedRun.WorktreePath!),
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // Best-effort cleanup; retention sweeps handle leftovers later.
+                }
+            }
+
             var sequence = session.ReserveNextEventSequence();
             var auditEvent = AuditEvent.Create(
                 session.Id,
@@ -88,3 +104,5 @@ public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> context
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }
+
+
