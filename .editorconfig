@@ -1,0 +1,20 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+# Generated EF Core migrations are committed artifacts; analyzer noise there is
+# reviewed through migration verification instead of per-rule warnings.
+[**/Persistence/Migrations/*.cs]
+dotnet_analyzer_diagnostic.category-Microsoft.CodeQuality.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Design.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Globalization.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Interoperability.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Maintainability.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Naming.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Performance.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Reliability.severity = none
+dotnet_analyzer_diagnostic.category-Microsoft.Security.severity = none
+dotnet_analyzer_diagnostic.category-System.Runtime.InteropServices.severity = none

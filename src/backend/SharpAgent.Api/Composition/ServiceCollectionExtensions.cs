@@ -1,5 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharpAgent.Application.Health;
 using SharpAgent.Infrastructure.Composition;
+using SharpAgent.Infrastructure.Persistence;
 
 namespace SharpAgent.Api.Composition;
 

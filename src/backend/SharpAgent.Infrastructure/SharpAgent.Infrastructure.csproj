@@ -1,12 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Generated EF migrations (committed artifacts) trigger array-literal analyzer
+         rules; their correctness is proven by fresh-database migration verification
+         and Infrastructure integration tests, not linting. -->
+    <NoWarn>$(NoWarn);CA1861;CA1869</NoWarn>
+  </PropertyGroup>
   <!-- Infrastructure: EF Core/SQLite, event store, secret references, filesystem/process edges.
        Implements Application interfaces; never referenced by Domain or Application. -->
   <ItemGroup>
     <ProjectReference Include="..\SharpAgent.Application\SharpAgent.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 </Project>

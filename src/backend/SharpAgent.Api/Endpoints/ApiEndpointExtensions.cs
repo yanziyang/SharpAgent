@@ -1,10 +1,10 @@
-using SharpAgent.Application.Health;
+using SharpAgent.Api.Endpoints;
 
 namespace SharpAgent.Api.Endpoints;
 
 /// <summary>
-/// Maps the public REST surface. Phase 0 exposes health only; later phases add
-/// workspaces, profiles, sessions, SSE, and approvals per the functional spec section 10.1.
+/// Maps the public REST surface. Phase 1 adds sessions, workspaces, and catalogs;
+/// SSE events, approvals, and provider validation arrive with later phases.
 /// </summary>
 public static class ApiEndpointExtensions
 {
@@ -14,8 +14,12 @@ public static class ApiEndpointExtensions
 
         api.MapGet(
             "/health",
-            async (HealthQueryService health, CancellationToken cancellationToken) =>
+            async (SharpAgent.Application.Health.HealthQueryService health, CancellationToken cancellationToken) =>
                 Results.Ok(await health.ProbeAsync(cancellationToken).ConfigureAwait(false)));
+
+        endpoints
+            .MapSessionEndpoints()
+            .MapWorkspaceAndCatalogEndpoints();
 
         return endpoints;
     }

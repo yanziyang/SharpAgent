@@ -103,6 +103,15 @@ function Get-CoverageFromCobertura {
             foreach ($class in @($package.SelectNodes('classes/class'))) {
                 if ($null -eq $class) { continue }
 
+                # Documented exclusions:
+                #   - EF migrations      : verified by the dedicated migration step.
+                #   - obj/ generated code: source generators' output, not hand-written product code.
+                #   - <...>d__* classes  : compiler-generated async state machines; their jump
+                #     conditions mirror hand-written await logic already measured on source lines.
+                if ($class.filename -match '[\\/]Persistence[\\/]Migrations[\\/]') { continue }
+                if ($class.filename -match '[\\/]obj[\\/]') { continue }
+                if ($class.name -match '<>|d__') { continue }
+
                 $classKey = "$assemblyName|$($class.name)"
                 if (-not $classes.ContainsKey($classKey)) {
                     $classes[$classKey] = @{
@@ -285,6 +294,40 @@ try {
         Assert-CoverageGroup -Assemblies $assemblies -Names @('SharpAgent.Infrastructure', 'SharpAgent.Runtime.Maf', 'SharpAgent.Api') -Label 'Infrastructure+Runtime+API'
     }
 
+    Invoke-QualityStep -Name 'SQLite migration verification' {
+        dotnet tool restore
+        Assert-LastExitCode -Context 'dotnet tool restore'
+
+        $migrationDirectory = Join-Path $RepoRoot 'artifacts/migration-test'
+        if (Test-Path -LiteralPath $migrationDirectory) {
+            Remove-Item -LiteralPath $migrationDirectory -Recurse -Force
+        }
+        New-Item -ItemType Directory -Force -Path $migrationDirectory | Out-Null
+
+        $env:SHARPAGENT_SQLITE_PATH = Join-Path $migrationDirectory 'sharpagent.db'
+        try {
+            # Apply all migrations to a FRESH database file.
+            dotnet dotnet-ef database update `
+                --project (Join-Path $RepoRoot 'src/backend/SharpAgent.Infrastructure') `
+                --startup-project (Join-Path $RepoRoot 'src/backend/SharpAgent.Api')
+            Assert-LastExitCode -Context 'ef database update'
+
+            if (-not (Test-Path -LiteralPath $env:SHARPAGENT_SQLITE_PATH)) {
+                throw 'Migration verification failed: database file was not created.'
+            }
+
+            # Fail the gate when the model drifts without a committed migration.
+            dotnet dotnet-ef migrations has-pending-model-changes `
+                --project (Join-Path $RepoRoot 'src/backend/SharpAgent.Infrastructure') `
+                --startup-project (Join-Path $RepoRoot 'src/backend/SharpAgent.Api')
+            Assert-LastExitCode -Context 'ef has-pending-model-changes'
+        } finally {
+            Remove-Item Env:SHARPAGENT_SQLITE_PATH -ErrorAction SilentlyContinue
+        }
+
+        Write-Host "Fresh-database migration verified at $migrationDirectory."
+    }
+
     Invoke-QualityStep -Name 'Frontend clean install (npm ci)' {
         npm ci
         Assert-LastExitCode -Context 'npm ci'
@@ -327,7 +370,6 @@ try {
     }
 
     Write-Host "`nDeferred gates (arrive with later phases):" -ForegroundColor DarkGray
-    Write-Host '- Fresh SQLite EF migration verification (Phase 1).' -ForegroundColor DarkGray
     Write-Host '- Requirement traceability report >=92% weighted (Phase 6).' -ForegroundColor DarkGray
     Write-Host '- Playwright instrumented coverage + Firefox/WebKit critical suite (Phase 6).' -ForegroundColor DarkGray
 

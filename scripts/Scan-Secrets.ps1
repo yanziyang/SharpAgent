@@ -98,6 +98,13 @@ function Find-SecretMatches {
         $pattern = $Rules[$ruleName].Pattern
         for ($index = 0; $index -lt $lines.Length; $index++) {
             $line = $lines[$index]
+
+            # Inline opt-out for INTENTIONAL secret-shaped fixtures (redaction and
+            # boundary tests). The marker keeps the intent auditable in review.
+            if ($line -match 'sharpagent:fixture-secret') {
+                continue
+            }
+
             if ($line -match $pattern) {
                 $value = $Matches[0]
                 $lower = $value.ToLowerInvariant()
