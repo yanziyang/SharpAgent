@@ -219,8 +219,8 @@ function Assert-CoverageGroup {
                     continue
                 }
 
-                # Rates arrive as percentages already (Line/Branch = rate*100).
-                $percent = [Math]::Round($stats[$metric].Covered, 2)
+                # Parser returns covered/valid COUNTS; the ratio is the percentage.
+                $percent = [Math]::Round($stats[$metric].Covered / $stats[$metric].Valid * 100, 2)
                 $ok = $percent -ge $CoverageThresholdPercent
             $marker = $ok ? 'OK  ' : 'FAIL'
             $rows += ("  {0} {1,-6} {2} = {3}% (threshold {4}%)" -f $marker, $metric, $name, $percent, $CoverageThresholdPercent)

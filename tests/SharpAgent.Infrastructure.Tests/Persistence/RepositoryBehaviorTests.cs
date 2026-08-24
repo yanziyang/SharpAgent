@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SharpAgent.Domain.Approvals;
 using SharpAgent.Domain.Idempotency;
 using SharpAgent.Domain.Policies;
 using SharpAgent.Domain.Profiles;
@@ -127,6 +128,41 @@ public sealed class RepositoryBehaviorTests : IDisposable
         Assert.Equal(1, deleted);
         Assert.NotNull(await store.FindAsync("fresh", CancellationToken.None));
         Assert.Null(await store.FindAsync("stale", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Approval_repository_finds_pending_by_run_and_session()
+    {
+        await _database.InitializeAsync();
+
+        string sessionId;
+        await using (var writer = _database.OpenContext())
+        {
+            var session = Domain.Sessions.Session.CreateNew("ws", "t", SessionMode.Plan, "m", "p", Now);
+            sessionId = session.Id;
+            await writer.Sessions.AddAsync(session);
+
+            var repository = new EfApprovalRequestRepository(writer);
+            await repository.AddAsync(
+                ApprovalRequest.Create("run_a", session.Id, "fingerprint", "patch", "summary", "[]", null, Now, Now.AddMinutes(5)),
+                CancellationToken.None);
+            await repository.AddAsync(
+                ApprovalRequest.Create("run_b", session.Id, "fingerprint-2", "command", "summary", "[]", null, Now, Now.AddMinutes(5)),
+                CancellationToken.None);
+            await writer.SaveChangesAsync();
+        }
+
+        await using var context = _database.OpenContext();
+        var reader = new EfApprovalRequestRepository(context);
+
+        var byRun = await reader.FindPendingByRunAsync("run_b", CancellationToken.None);
+        Assert.NotNull(byRun);
+        Assert.Equal("run_b", byRun!.RunId);
+
+        Assert.Equal(2, (await reader.ListPendingBySessionAsync(sessionId, CancellationToken.None)).Count);
+
+        var otherSession = Domain.Sessions.Session.CreateNew("ws", "t", SessionMode.Plan, "m", "p", Now);
+        Assert.Empty(await reader.ListPendingBySessionAsync(otherSession.Id, CancellationToken.None));
     }
 
     public void Dispose() => _database.Dispose();

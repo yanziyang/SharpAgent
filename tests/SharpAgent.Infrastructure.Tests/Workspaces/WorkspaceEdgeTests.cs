@@ -83,6 +83,42 @@ public sealed class CanonicalPathResolverTests : IDisposable
         }
     }
 
+    [Fact]
+    public void File_links_resolving_inside_the_root_are_allowed()
+    {
+        // File symlinks require either admin rights or Windows developer mode; if
+        // the environment cannot create one the scenario is simply skipped.
+        var real = Path.Combine(_workspace.RootPath, "real.txt");
+        File.WriteAllText(real, "value");
+        var alias = Path.Combine(_workspace.RootPath, "alias.txt");
+        if (!TryCreateFileLink(alias, real))
+        {
+            return;
+        }
+
+        var resolved = _resolver.Resolve(_workspace.RootPath, "alias.txt");
+
+        Assert.Equal("alias.txt", resolved.RelativePath);
+        Assert.Equal(real, resolved.AbsolutePath);
+    }
+
+    private static bool TryCreateFileLink(string linkPath, string targetPath)
+    {
+        using var process = System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink \"{linkPath}\" \"{targetPath}\"")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+
+        if (process is null || !process.WaitForExit(10_000))
+        {
+            return false;
+        }
+
+        return process.ExitCode == 0;
+    }
+
     private static void RunCmd(string arguments)
     {
         using var process = System.Diagnostics.Process.Start(
@@ -175,5 +211,20 @@ public sealed class HardenedProcessRunnerTests
 
         Assert.DoesNotContain("must-not-leak", result.CombinedOutput, StringComparison.Ordinal);
         Environment.SetEnvironmentVariable("SHARPAGENT_CANARY", null);
+    }
+
+    [Fact]
+    public void Requested_environment_variables_are_passed_to_the_child()
+    {
+        var result = _runner.Run(new ProcessExecutionRequest(
+            "cmd.exe",
+            ["/c", "echo %SHARPAGENT_REQUESTED%"],
+            AppContext.BaseDirectory,
+            TimeSpan.FromSeconds(15),
+            4_000,
+            new Dictionary<string, string> { ["SHARPAGENT_REQUESTED"] = "canary-value" }),
+            CancellationToken.None);
+
+        Assert.Contains("canary-value", result.CombinedOutput, StringComparison.Ordinal);
     }
 }

@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using SharpAgent.Application.Abstractions;
+using SharpAgent.Application.Tools;
 using SharpAgent.Infrastructure.Workspaces;
 using SharpAgent.TestKit.Workspaces;
 using Xunit;
@@ -37,6 +39,7 @@ public sealed class WorkspaceEdgeLifecycleTests : IDisposable
         Assert.False(_files.FileExists(target));
         _files.WriteText(target, "created");
         Assert.True(_files.FileExists(target));
+        Assert.True(_files.DirectoryExists(_resolver("deep/nested")));
 
         _files.DeleteFile(target);
         Assert.False(_files.FileExists(target));
@@ -64,6 +67,47 @@ public sealed class WorkspaceEdgeLifecycleTests : IDisposable
         Assert.Equal(2, matches.Count);
         Assert.All(matches, static match => match.Contains("needle", StringComparison.Ordinal));
         Assert.False(truncated);
+    }
+
+    [Fact]
+    public void Search_skips_binary_files_and_finds_matches_past_the_sniff_window()
+    {
+        _workspace.WriteFile("text.txt", new string('a', 2_000) + "\nneedle at the end");
+        File.WriteAllBytes(
+            Path.Combine(_workspace.RootPath, "blob.bin"),
+            [.. Enumerable.Repeat((byte)0, 64)]);
+
+        var matches = _files.SearchText(_resolver("."), "needle", 10, out var truncated);
+
+        var match = Assert.Single(matches);
+        Assert.Contains("text.txt", match, StringComparison.Ordinal);
+        Assert.False(truncated);
+    }
+
+    [Fact]
+    public void Search_bounds_results_and_flags_truncation()
+    {
+        _workspace.WriteFile("many.txt", string.Join('\n', Enumerable.Repeat("needle hit", 25)));
+
+        var matches = _files.SearchText(_resolver("."), "needle", 5, out var truncated);
+
+        Assert.Equal(5, matches.Count);
+        Assert.True(truncated);
+    }
+
+    [Fact]
+    public void Search_skips_files_that_cannot_be_opened()
+    {
+        _workspace.WriteFile("locked.txt", "needle locked");
+        using var exclusive = new FileStream(
+            Path.Combine(_workspace.RootPath, "locked.txt"),
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.None);
+
+        var matches = _files.SearchText(_resolver("."), "needle", 10, out _);
+
+        Assert.DoesNotContain(matches, static match => match.Contains("locked.txt", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -87,6 +87,10 @@ public sealed class BoundedFileAccess : IWorkspaceFileAccess
                     continue;
                 }
 
+                // The null sniff consumed the leading bytes; rewind before reading
+                // the full content, otherwise small files appear empty.
+                stream.Position = 0;
+
                 using var reader = new StreamReader(stream);
                 content = reader.ReadToEnd();
             }
