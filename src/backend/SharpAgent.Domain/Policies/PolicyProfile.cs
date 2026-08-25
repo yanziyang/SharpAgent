@@ -63,7 +63,7 @@ public sealed class PolicyProfile
 
     /// <summary>Default controlled MVP rules (functional spec section 14.1).</summary>
     public const string DefaultRulesJson =
-        """{"read_file":"allow","list_directory":"allow","search_text":"allow","repo_status":"allow","apply_patch":"require_approval","write_file":"require_approval","run_command":"require_approval","run_tests":"require_approval","delete":"deny","move":"deny","install":"deny","publish":"deny","git_commit":"deny","network":"deny"}""";
+        """{"read_file":"allow","list_directory":"allow","search_text":"allow","find_files":"allow","repo_status":"allow","apply_patch":"require_approval","write_file":"require_approval","edit_file":"require_approval","run_command":"require_approval","run_tests":"require_approval","delete":"deny","move":"deny","install":"deny","publish":"deny","git_commit":"deny","network":"deny"}""";
 
     /// <summary>Returns the tightened override or the policy value when the override is absent.</summary>
     public int ApplyDurationOverride(int? requestedMinutes) =>

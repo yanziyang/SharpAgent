@@ -4,6 +4,7 @@ using SharpAgent.Application.Common;
 using SharpAgent.Application.Security;
 using SharpAgent.Domain.Approvals;
 using SharpAgent.Domain.Auditing;
+using SharpAgent.Domain.Changes;
 using SharpAgent.Domain.Common;
 using SharpAgent.Domain.Sessions;
 using SharpAgent.Domain.Workspaces;
@@ -41,6 +42,8 @@ public sealed class WorkspaceToolService(
     public const int MaxReadCharacters = 8_000;
     public const int MaxListEntries = 200;
     public const int MaxSearchResults = 50;
+    public const int MaxFindResults = 200;
+    public const int MaxWriteCharacters = 32_000;
     public const int CommandTimeoutSeconds = 600;
 
     private static readonly JsonSerializerOptions PayloadOptions = new(JsonSerializerDefaults.Web);
@@ -83,12 +86,15 @@ public sealed class WorkspaceToolService(
 
         // Fail fast on unknown catalog commands BEFORE an approval is requested.
         if (proposal.Action == ToolAction.RunCommand
-            && !commandCatalog.TryResolve(proposal.CommandName ?? string.Empty, out _))
+            && !commandCatalog.TryResolve(proposal.CommandName ?? string.Empty, proposal.Arguments, out _))
         {
-            throw ValidationException.ForField("commandName", "Command is not in the approved catalog.");
+            throw ValidationException.ForField(
+                "commandName",
+                "Command or arguments are not in the focused server-side catalog.");
         }
 
         BoundaryRoots boundary;
+        ToolProposal effectiveProposal = proposal;
         IReadOnlyList<ResolvedTarget> targets;
         string? patchContentHash;
         try
@@ -97,6 +103,20 @@ public sealed class WorkspaceToolService(
 
             // 2) Canonicalize every proposed target BEFORE any executor is reachable (FR-002).
             (targets, patchContentHash) = await ResolveTargetsAsync(boundary, proposal, cancellationToken).ConfigureAwait(false);
+
+            if (proposal.Action is ToolAction.WriteFile or ToolAction.EditFile)
+            {
+                effectiveProposal = await PrepareFileChangeAsync(
+                    run,
+                    boundary,
+                    proposal,
+                    targets,
+                    cancellationToken).ConfigureAwait(false);
+                (targets, patchContentHash) = await ResolveTargetsAsync(
+                    boundary,
+                    effectiveProposal,
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (WorkspaceEscapeException)
         {
@@ -124,22 +144,22 @@ public sealed class WorkspaceToolService(
         if (decision.Outcome == Domain.Tools.PolicyOutcome.Allow)
         {
             return await ExecuteCoreAsync(
-                session, run, boundary, proposal, targets, patchContentHash, approvalId: null, cancellationToken)
+                session, run, boundary, effectiveProposal, targets, patchContentHash, approvalId: null, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         // 3) Single-use, expiring, fingerprinted approval (FR-043..FR-045).
         var fingerprint = ActionFingerprint.Compute(
-            proposal, targets, workspace.CanonicalRootPath!, policyProfile.RulesJson, patchContentHash);
+            effectiveProposal, targets, workspace.CanonicalRootPath!, policyProfile.RulesJson, patchContentHash);
         var expiresAt = clock.UtcNow.AddMinutes(policyProfile.ApprovalExpiryMinutes);
 
-        var payload = new ApprovalStoredPayload(proposal, targets, patchContentHash ?? string.Empty);
+        var payload = new ApprovalStoredPayload(effectiveProposal, targets, patchContentHash ?? string.Empty);
         var approval = ApprovalRequest.Create(
-            proposal.RunId,
-            proposal.SessionId,
+            effectiveProposal.RunId,
+            effectiveProposal.SessionId,
             fingerprint,
-            proposal.Action.ToString(),
-            BuildSummary(proposal, targets),
+            effectiveProposal.Action.ToString(),
+            BuildSummary(effectiveProposal, targets),
             JsonSerializer.Serialize(targets.Select(static t => t.RelativePath).ToArray(), PayloadOptions),
             decision.SafeReason,
             clock.UtcNow,
@@ -310,8 +330,27 @@ public sealed class WorkspaceToolService(
             case ToolAction.SearchText:
                 {
                     ArgumentException.ThrowIfNullOrWhiteSpace(proposal.SearchQuery);
-                    var matches = fileAccess.SearchText(targets[0], proposal.SearchQuery, MaxSearchResults, out var searchTruncated);
+                    IReadOnlyList<string> matches;
+                    bool searchTruncated;
+                    if (proposal.Recursive)
+                    {
+                        matches = fileAccess.SearchTextRecursive(
+                            targets[0], proposal.SearchQuery, MaxSearchResults, out searchTruncated);
+                    }
+                    else
+                    {
+                        matches = fileAccess.SearchText(
+                            targets[0], proposal.SearchQuery, MaxSearchResults, out searchTruncated);
+                    }
+
                     return (0, SecretRedactor.Redact(string.Join('\n', matches))!, searchTruncated);
+                }
+
+            case ToolAction.FindFiles:
+                {
+                    ArgumentException.ThrowIfNullOrWhiteSpace(proposal.NamePattern);
+                    var matches = fileAccess.FindFiles(targets[0], proposal.NamePattern, MaxFindResults, out var findTruncated);
+                    return (0, SecretRedactor.Redact(string.Join('\n', matches))!, findTruncated);
                 }
 
             case ToolAction.RepositoryStatus:
@@ -321,7 +360,7 @@ public sealed class WorkspaceToolService(
                     return (status.ExitCode, SecretRedactor.Redact(status.CombinedOutput + note)!, status.OutputTruncated);
                 }
 
-            case ToolAction.ApplyPatch:
+            case ToolAction.ApplyPatch or ToolAction.WriteFile or ToolAction.EditFile:
                 return await ApplyPatchAsync(session, boundary, proposal, cancellationToken).ConfigureAwait(false);
 
             case ToolAction.RunCommand:
@@ -366,14 +405,134 @@ public sealed class WorkspaceToolService(
         return (applied.AllApplied ? 0 : 1, applied.SummaryText, false);
     }
 
+    private async Task<ToolProposal> PrepareFileChangeAsync(
+        AgentRun run,
+        BoundaryRoots boundary,
+        ToolProposal proposal,
+        IReadOnlyList<ResolvedTarget> targets,
+        CancellationToken cancellationToken)
+    {
+        if (targets.Count != 1)
+        {
+            throw ValidationException.ForField("path", "Exactly one workspace file is required.");
+        }
+
+        var target = targets[0];
+        string newContent;
+
+        if (proposal.Action == ToolAction.WriteFile)
+        {
+            if (proposal.Content is null)
+            {
+                throw ValidationException.ForField("content", "File content is required.");
+            }
+
+            newContent = proposal.Content;
+        }
+        else
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(proposal.OldText);
+            if (proposal.NewText is null)
+            {
+                throw ValidationException.ForField("newText", "Replacement text is required.");
+            }
+
+            if (!fileAccess.FileExists(target))
+            {
+                throw new NotFoundException("file", proposal.RelativePath ?? string.Empty);
+            }
+
+            var (currentContent, truncated) = fileAccess.ReadTextBounded(target, MaxWriteCharacters);
+            if (truncated)
+            {
+                throw new ConflictException(
+                    "file_too_large_for_edit",
+                    "The file is larger than the bounded edit size; use a smaller targeted change.");
+            }
+
+            var occurrences = CountOccurrences(currentContent, proposal.OldText);
+            if (occurrences != 1)
+            {
+                throw new ConflictException(
+                    "edit_match_not_unique",
+                    $"The old text must match exactly once; it matched {occurrences} times.");
+            }
+
+            newContent = currentContent.Replace(proposal.OldText, proposal.NewText, StringComparison.Ordinal);
+        }
+
+        if (newContent.Length > MaxWriteCharacters)
+        {
+            throw ValidationException.ForField(
+                proposal.Action == ToolAction.WriteFile ? "content" : "newText",
+                $"File content cannot exceed {MaxWriteCharacters} characters.");
+        }
+
+        var beforeHash = fileAccess.FileHash(target) ?? string.Empty;
+        var changeSet = ChangeSet.CreateNew(run.Id, clock.UtcNow);
+        var changeType = beforeHash.Length == 0 ? FileChangeType.Added : FileChangeType.Modified;
+        var change = changeSet.AddFile(target.RelativePath, changeType, clock.UtcNow);
+        change.RecordProposalEvidence(
+            beforeHash,
+            ActionFingerprint.Sha256Hex(newContent),
+            BuildChangePreview(target.RelativePath, beforeHash, newContent),
+            newContent,
+            clock.UtcNow);
+
+        await changeSets.AddAsync(changeSet, cancellationToken).ConfigureAwait(false);
+
+        // The approval payload carries the immutable change-set id and content
+        // hash, never the raw model-provided file content.
+        return proposal with
+        {
+            ChangeSetId = changeSet.Id,
+            Content = null,
+            OldText = null,
+            NewText = null,
+        };
+    }
+
+    private static int CountOccurrences(string value, string search)
+    {
+        var count = 0;
+        var offset = 0;
+        while (offset <= value.Length - search.Length)
+        {
+            var index = value.IndexOf(search, offset, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                break;
+            }
+
+            count++;
+            offset = index + search.Length;
+        }
+
+        return count;
+    }
+
+    private static string BuildChangePreview(string relativePath, string beforeHash, string newContent)
+    {
+        const int maxLines = 60;
+        var before = beforeHash.Length == 0 ? "none" : beforeHash[..Math.Min(12, beforeHash.Length)];
+        var newLines = newContent.Split('\n');
+        var head = newLines.Take(maxLines).Select(static line => "+" + line.TrimEnd('\r'));
+        var suffix = newLines.Length > maxLines ? new[] { $"… (+{newLines.Length - maxLines} more lines)" } : [];
+        return $"--- a/{relativePath} (before {before})" + '\n'
+               + $"+++ b/{relativePath}" + '\n'
+               + string.Join('\n', head.Concat(suffix));
+    }
+
     private (int? ExitCode, string OutputPreview, bool Truncated) RunCatalogCommand(
         ToolProposal proposal,
         string workingRoot,
         CancellationToken cancellationToken)
     {
-        if (!commandCatalog.TryResolve(proposal.CommandName ?? string.Empty, out var template))
+        if (!commandCatalog.TryResolve(proposal.CommandName ?? string.Empty, proposal.Arguments, out var template))
         {
-            throw ValidationException.ForField("commandName", "Command is not in the approved catalog.");
+            throw ValidationException.ForField(
+                "commandName",
+                "Command or arguments are not in the focused server-side catalog.");
         }
 
         var arguments = template.BaseArguments.Concat(proposal.Arguments ?? []).ToArray();
@@ -407,15 +566,19 @@ public sealed class WorkspaceToolService(
     {
         switch (proposal.Action)
         {
-            case ToolAction.ReadFile or ToolAction.ListDirectory or ToolAction.SearchText:
+            case ToolAction.ReadFile or ToolAction.ListDirectory or ToolAction.SearchText or ToolAction.FindFiles:
                 ArgumentException.ThrowIfNullOrWhiteSpace(proposal.RelativePath);
                 return ([pathResolver.Resolve(boundary.BoundaryForReads, proposal.RelativePath)], null);
+
+            case ToolAction.WriteFile or ToolAction.EditFile when string.IsNullOrWhiteSpace(proposal.ChangeSetId):
+                ArgumentException.ThrowIfNullOrWhiteSpace(proposal.RelativePath);
+                return ([pathResolver.Resolve(boundary.ExecutionRoot, proposal.RelativePath)], null);
 
             case ToolAction.RepositoryStatus:
             case ToolAction.RunCommand:
                 return ([], null);
 
-            case ToolAction.ApplyPatch:
+            case ToolAction.ApplyPatch or ToolAction.WriteFile or ToolAction.EditFile:
                 var changeSetId = proposal.ChangeSetId
                                   ?? throw ValidationException.ForField("changeSetId", "Change set id is required.");
                 var changeSet = await changeSets.FindAsync(changeSetId, cancellationToken).ConfigureAwait(false)
@@ -464,7 +627,7 @@ public sealed class WorkspaceToolService(
     }
 
     internal static bool RequiresWorktree(ToolAction action) =>
-        action is ToolAction.ApplyPatch or ToolAction.RunCommand;
+        action is ToolAction.ApplyPatch or ToolAction.RunCommand or ToolAction.WriteFile or ToolAction.EditFile;
 
     private static AgentRun RequireActiveRun(Session session, string runId)
     {
@@ -485,13 +648,16 @@ public sealed class WorkspaceToolService(
     {
         ToolAction.ReadFile => $"Read {proposal.RelativePath}.",
         ToolAction.ListDirectory => $"List directory {proposal.RelativePath}.",
-        ToolAction.SearchText => $"Search '{Truncate(proposal.SearchQuery, 40)}' in {proposal.RelativePath}.",
+        ToolAction.SearchText => $"Search '{Truncate(proposal.SearchQuery, 40)}' in {proposal.RelativePath}{(proposal.Recursive ? " recursively" : string.Empty)}.",
+        ToolAction.FindFiles => $"Find '{Truncate(proposal.NamePattern, 40)}' under {proposal.RelativePath}.",
         ToolAction.RepositoryStatus => "Show repository working-tree status.",
         ToolAction.ApplyPatch when targets.Count > 0 =>
             $"Apply change set to {targets.Count} file(s): {Truncate(string.Join(", ", targets.Select(static t => t.RelativePath)), 160)}.",
         ToolAction.ApplyPatch => "Apply proposed change set.",
         ToolAction.RunCommand =>
             $"Run '{Truncate(proposal.CommandName, 24)} {Truncate(string.Join(' ', proposal.Arguments ?? []), 120)}' in the run worktree.",
+        ToolAction.WriteFile => $"Write {Truncate(proposal.RelativePath, 160)} in the run worktree.",
+        ToolAction.EditFile => $"Edit {Truncate(proposal.RelativePath, 160)} in the run worktree.",
         _ => Truncate(proposal.Action.ToString(), 60),
     };
 

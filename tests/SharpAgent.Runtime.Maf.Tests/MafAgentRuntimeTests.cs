@@ -115,8 +115,8 @@ public sealed class MafAgentRuntimeTests : IDisposable
     [Fact]
     public async Task Tool_call_limit_stops_the_run_with_a_status_event()
     {
-        _chat.Step(FakeChatClient.Call("read_file", """{"path":"src/a.cs"}"""));
-        _chat.Step(FakeChatClient.Call("read_file", """{"path":"src/b.cs"}"""));
+        _chat.Step(FakeChatClient.Call("read", """{"path":"src/a.cs"}"""));
+        _chat.Step(FakeChatClient.Call("read", """{"path":"src/b.cs"}"""));
 
         foreach (var e in _sink.Events) { Console.WriteLine($"DBG {e.Kind} tool={e.ToolName} text={e.Text}"); }
         var outcome = await _runtime.RunAsync(Context(SessionMode.Execute, maxToolCalls: 1), _sink, CancellationToken.None);
@@ -230,9 +230,9 @@ public sealed class MafAgentRuntimeTests : IDisposable
     [Fact]
     public async Task Read_only_facades_execute_through_the_bridge()
     {
-        _chat.Step(FakeChatClient.Call("read_file", """{"path":"src/a.cs"}"""));
-        _chat.Step(FakeChatClient.Call("list_directory", """{"path":"."}"""));
-        _chat.Step(FakeChatClient.Call("search_text", """{"path":".","query":"needle"}"""));
+        _chat.Step(FakeChatClient.Call("read", """{"path":"src/a.cs"}"""));
+        _chat.Step(FakeChatClient.Call("ls", """{"path":"."}"""));
+        _chat.Step(FakeChatClient.Call("grep", """{"path":".","query":"needle"}"""));
         _chat.Step(FakeChatClient.Call("repository_status", "{}"));
         _chat.Step(FakeChatClient.Text("done"));
 
@@ -265,7 +265,7 @@ public sealed class MafAgentRuntimeTests : IDisposable
             ? new ToolProposalOutcome(ToolProposalStatus.Denied, null, null, "Reads are not allowed in this workspace.")
             : new ToolProposalOutcome(ToolProposalStatus.Executed, null, "ok", null);
 
-        _chat.Step(FakeChatClient.Call("read_file", """{"path":"src/a.cs"}"""));
+        _chat.Step(FakeChatClient.Call("read", """{"path":"src/a.cs"}"""));
         _chat.Step(FakeChatClient.Text("finished"));
 
         var outcome = await _runtime.RunAsync(Context(SessionMode.Plan), _sink, CancellationToken.None);
@@ -284,7 +284,7 @@ public sealed class MafAgentRuntimeTests : IDisposable
             ApprovalId: null,
             OutputPreview: null,
             SafeMessage: null);
-        _chat.Step(FakeChatClient.Call("read_file", """{"path":"src/a.cs"}"""));
+        _chat.Step(FakeChatClient.Call("read", """{"path":"src/a.cs"}"""));
 
         var outcome = await _runtime.RunAsync(Context(SessionMode.Plan), _sink, CancellationToken.None);
 
@@ -328,6 +328,46 @@ public sealed class MafAgentRuntimeTests : IDisposable
                 CancellationToken.None);
             Assert.Equal("error: todos must be a JSON array of {text, done} objects.", result?.ToString());
         }
+    }
+
+    [Fact]
+    public void Pi_style_tool_surface_is_mode_and_configuration_aware()
+    {
+        var planNames = new FacadeToolRegistry(Context(SessionMode.Plan), _bridge)
+            .Create()
+            .Select(static tool => tool.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.True(planNames.SetEquals(
+            [
+                FacadeToolRegistry.ReadToolName,
+                FacadeToolRegistry.LsToolName,
+                FacadeToolRegistry.GrepToolName,
+                FacadeToolRegistry.FindToolName,
+                FacadeToolRegistry.UpdateTodosToolName,
+                FacadeToolRegistry.RepositoryStatusToolName,
+            ]));
+        Assert.DoesNotContain(FacadeToolRegistry.WriteToolName, planNames);
+        Assert.DoesNotContain(FacadeToolRegistry.PowerShellToolName, planNames);
+
+        var executeNames = new FacadeToolRegistry(Context(SessionMode.Execute), _bridge)
+            .Create()
+            .Select(static tool => tool.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Contains(FacadeToolRegistry.WriteToolName, executeNames);
+        Assert.Contains(FacadeToolRegistry.EditToolName, executeNames);
+        Assert.Contains(FacadeToolRegistry.BashToolName, executeNames);
+        Assert.Contains(FacadeToolRegistry.PowerShellToolName, executeNames);
+        Assert.Contains(FacadeToolRegistry.ApplyPatchToolName, executeNames);
+
+        var filtered = new AgentToolOptions(
+            new HashSet<string>([FacadeToolRegistry.ReadToolName, FacadeToolRegistry.PowerShellToolName], StringComparer.Ordinal),
+            new HashSet<string>([FacadeToolRegistry.PowerShellToolName], StringComparer.Ordinal));
+        var filteredNames = new FacadeToolRegistry(Context(SessionMode.Execute), _bridge, filtered)
+            .Create()
+            .Select(static tool => tool.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.True(filteredNames.SetEquals([FacadeToolRegistry.ReadToolName]));
     }
 
     [Fact]

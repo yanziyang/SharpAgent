@@ -31,6 +31,12 @@ public sealed class Phase2ValidationCompletionTests : IDisposable
         Assert.False(FocusedCommandCatalog.Default.TryResolve("curl", out _));
         Assert.True(FocusedCommandCatalog.Default.TryResolve("dotnet", out var dotnet));
         Assert.Equal("dotnet", dotnet.Executable);
+        Assert.True(FocusedCommandCatalog.Default.TryResolve("powershell", ["Get-Date -Format o"], out var powershell));
+        Assert.Equal("powershell.exe", powershell.Executable);
+        Assert.False(FocusedCommandCatalog.Default.TryResolve("powershell", ["Get-Process"], out _));
+        Assert.True(FocusedCommandCatalog.Default.TryResolve("bash", ["pwd"], out var bash));
+        Assert.Equal("bash.exe", bash.Executable);
+        Assert.False(FocusedCommandCatalog.Default.TryResolve("bash", ["rm -rf ."], out _));
     }
 
     [Fact]

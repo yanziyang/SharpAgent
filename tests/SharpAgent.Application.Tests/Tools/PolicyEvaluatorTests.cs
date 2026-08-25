@@ -43,8 +43,11 @@ public sealed class PolicyEvaluatorTests
         { ToolAction.ListDirectory, PolicyOutcome.Allow },
         { ToolAction.SearchText, PolicyOutcome.Allow },
         { ToolAction.RepositoryStatus, PolicyOutcome.Allow },
+        { ToolAction.FindFiles, PolicyOutcome.Allow },
         { ToolAction.ApplyPatch, PolicyOutcome.RequireApproval },
         { ToolAction.RunCommand, PolicyOutcome.RequireApproval },
+        { ToolAction.WriteFile, PolicyOutcome.RequireApproval },
+        { ToolAction.EditFile, PolicyOutcome.RequireApproval },
     };
 
     [Theory]
@@ -62,12 +65,15 @@ public sealed class PolicyEvaluatorTests
         { ToolAction.ListDirectory },
         { ToolAction.SearchText },
         { ToolAction.RepositoryStatus },
+        { ToolAction.FindFiles },
     };
 
     public static TheoryData<ToolAction> SideEffectingActions() => new()
     {
         { ToolAction.ApplyPatch },
         { ToolAction.RunCommand },
+        { ToolAction.WriteFile },
+        { ToolAction.EditFile },
     };
 
     [Theory]

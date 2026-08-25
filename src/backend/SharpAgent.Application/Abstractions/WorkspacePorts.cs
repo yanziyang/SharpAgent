@@ -39,6 +39,20 @@ public interface IWorkspaceFileAccess
         int maxResults,
         out bool resultsTruncated);
 
+    /// <summary>Recursive bounded text search that skips reparse points.</summary>
+    IReadOnlyList<string> SearchTextRecursive(
+        ResolvedTarget directory,
+        string query,
+        int maxResults,
+        out bool resultsTruncated);
+
+    /// <summary>Bounded file-name search that skips reparse points.</summary>
+    IReadOnlyList<string> FindFiles(
+        ResolvedTarget directory,
+        string namePattern,
+        int maxResults,
+        out bool resultsTruncated);
+
     /// <summary>SHA-256 hex of current file bytes; null when the file does not exist.</summary>
     string? FileHash(ResolvedTarget target);
 }

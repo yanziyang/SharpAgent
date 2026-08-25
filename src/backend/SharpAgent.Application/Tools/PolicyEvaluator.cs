@@ -18,12 +18,15 @@ public sealed class PolicyEvaluator
         nameof(ToolAction.ListDirectory),
         nameof(ToolAction.SearchText),
         nameof(ToolAction.RepositoryStatus),
+        nameof(ToolAction.FindFiles),
     };
 
     private static readonly HashSet<string> ApprovalActions = new(StringComparer.Ordinal)
     {
         nameof(ToolAction.ApplyPatch),
         nameof(ToolAction.RunCommand),
+        nameof(ToolAction.WriteFile),
+        nameof(ToolAction.EditFile),
     };
 
     /// <summary>Maps tool actions to the snake_case keys used in the operator rule document.</summary>
@@ -34,8 +37,11 @@ public sealed class PolicyEvaluator
             [nameof(ToolAction.ListDirectory)] = "list_directory",
             [nameof(ToolAction.SearchText)] = "search_text",
             [nameof(ToolAction.RepositoryStatus)] = "repo_status",
+            [nameof(ToolAction.FindFiles)] = "find_files",
             [nameof(ToolAction.ApplyPatch)] = "apply_patch",
             [nameof(ToolAction.RunCommand)] = "run_command",
+            [nameof(ToolAction.WriteFile)] = "write_file",
+            [nameof(ToolAction.EditFile)] = "edit_file",
         };
 
     public static PolicyDecision Evaluate(

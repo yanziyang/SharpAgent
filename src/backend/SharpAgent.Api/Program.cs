@@ -69,7 +69,7 @@ builder.Services.AddApplicationServices();
 var localDemoEnabled = builder.Environment.IsDevelopment()
     && builder.Configuration.GetValue<bool>(LocalDemoOptions.EnabledKey);
 builder.Services.AddProviderAdapters(localDemoEnabled);
-builder.Services.AddMafRuntime();
+builder.Services.AddMafRuntime(builder.Configuration);
 builder.Services.AddSharpAgentServices(builder.Configuration);
 builder.Services.AddHostedService<PersistenceStartupService>();
 builder.Services.AddHostedService<LocalDemoCatalogStartupService>();

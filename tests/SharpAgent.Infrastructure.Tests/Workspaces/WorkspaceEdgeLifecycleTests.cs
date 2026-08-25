@@ -96,6 +96,27 @@ public sealed class WorkspaceEdgeLifecycleTests : IDisposable
     }
 
     [Fact]
+    public void Recursive_search_and_find_are_bounded_and_workspace_relative()
+    {
+        _workspace.WriteFile("tool-fixture/one.cs", "needle in source");
+        _workspace.WriteFile("tool-fixture/nested/two.cs", "another needle");
+        _workspace.WriteFile("tool-fixture/readme.md", "needle in docs");
+
+        var matches = _files.SearchTextRecursive(_resolver("tool-fixture"), "needle", 10, out var searchTruncated);
+        var files = _files.FindFiles(_resolver("tool-fixture"), "*.cs", 10, out var findTruncated);
+
+        Assert.Equal(3, matches.Count);
+        Assert.Contains(matches, static match => match.StartsWith("one.cs:", StringComparison.Ordinal));
+        Assert.Contains(matches, static match => match.StartsWith("nested/two.cs:", StringComparison.Ordinal));
+        Assert.DoesNotContain(matches, static match => match.StartsWith("..", StringComparison.Ordinal));
+        Assert.Equal(2, files.Count);
+        Assert.Contains("one.cs", files);
+        Assert.Contains("nested/two.cs", files);
+        Assert.False(searchTruncated);
+        Assert.False(findTruncated);
+    }
+
+    [Fact]
     public void Search_skips_files_that_cannot_be_opened()
     {
         _workspace.WriteFile("locked.txt", "needle locked");

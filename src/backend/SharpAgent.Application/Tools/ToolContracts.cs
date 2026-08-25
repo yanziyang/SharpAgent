@@ -16,7 +16,12 @@ public sealed record ToolProposal(
     string? SearchQuery = null,
     string? CommandName = null,
     IReadOnlyList<string>? Arguments = null,
-    string? ChangeSetId = null);
+    string? ChangeSetId = null,
+    string? Content = null,
+    string? OldText = null,
+    string? NewText = null,
+    string? NamePattern = null,
+    bool Recursive = false);
 
 public enum ToolAction
 {
@@ -30,6 +35,15 @@ public enum ToolAction
 
     /// <summary>Run a focused test/build command from the approved catalog.</summary>
     RunCommand = 5,
+
+    /// <summary>Propose creating or replacing a text file in the run worktree.</summary>
+    WriteFile = 6,
+
+    /// <summary>Propose a unique old-text to new-text edit in the run worktree.</summary>
+    EditFile = 7,
+
+    /// <summary>Find workspace files by bounded name pattern.</summary>
+    FindFiles = 8,
 }
 
 /// <summary>Pure policy verdict before any executor is reachable (FR-040/FR-041).</summary>

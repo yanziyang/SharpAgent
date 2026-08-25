@@ -153,6 +153,59 @@ public sealed class RecordingFileAccess : IWorkspaceFileAccess
         return matches;
     }
 
+    public IReadOnlyList<string> SearchTextRecursive(
+        ResolvedTarget directory,
+        string query,
+        int maxResults,
+        out bool resultsTruncated)
+    {
+        Count();
+        resultsTruncated = false;
+        var matches = new List<string>();
+        foreach (var file in System.IO.Directory.EnumerateFiles(directory.AbsolutePath, "*", SearchOption.AllDirectories))
+        {
+            foreach (var (line, index) in File.ReadLines(file).Select(static (text, i) => (text, i)))
+            {
+                if (matches.Count >= maxResults)
+                {
+                    resultsTruncated = true;
+                    return matches;
+                }
+
+                if (line.Contains(query, StringComparison.OrdinalIgnoreCase))
+                {
+                    var relative = Path.GetRelativePath(directory.AbsolutePath, file).Replace(Path.DirectorySeparatorChar, '/');
+                    matches.Add($"{relative}:{index + 1}: {line.Trim()}");
+                }
+            }
+        }
+
+        return matches;
+    }
+
+    public IReadOnlyList<string> FindFiles(
+        ResolvedTarget directory,
+        string namePattern,
+        int maxResults,
+        out bool resultsTruncated)
+    {
+        Count();
+        resultsTruncated = false;
+        var matches = new List<string>();
+        foreach (var file in System.IO.Directory.EnumerateFiles(directory.AbsolutePath, namePattern, SearchOption.AllDirectories))
+        {
+            if (matches.Count >= maxResults)
+            {
+                resultsTruncated = true;
+                break;
+            }
+
+            matches.Add(Path.GetRelativePath(directory.AbsolutePath, file).Replace(Path.DirectorySeparatorChar, '/'));
+        }
+
+        return matches;
+    }
+
     public string? FileHash(ResolvedTarget target)
     {
         Count();

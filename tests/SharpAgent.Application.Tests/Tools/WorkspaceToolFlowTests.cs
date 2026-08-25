@@ -94,6 +94,45 @@ public sealed class WorkspaceToolFlowTests : IDisposable
     }
 
     [Fact]
+    public async Task Write_and_edit_are_approval_gated_and_apply_only_in_the_run_worktree()
+    {
+        _workspace.WriteFile("src/app.cs", "answer = 41;");
+        var session = await StartExecuteSessionAsync();
+
+        var pendingWrite = Assert.IsType<ToolProposalResult.AwaitingApproval>(await Tools.ProposeAsync(new ToolProposal(
+            session.Id,
+            session.ActiveRunId!,
+            session.WorkspaceId,
+            ToolAction.WriteFile,
+            RelativePath: "src/new.cs",
+            Content: "answer = 42;")));
+
+        Assert.False(File.Exists(Path.Combine(_workspace.RootPath, "src", "new.cs")));
+        var writeResolution = await _approvals.ResolveAsync(
+            pendingWrite.ApprovalId,
+            new ResolveApprovalRequest(ApprovalDecision.ApproveOnce, null),
+            $"approve-write-{Guid.NewGuid():N}");
+        Assert.IsType<ToolProposalResult.Executed>(writeResolution.ExecutionResult);
+        Assert.Contains("answer = 42", File.ReadAllText(Path.Combine(_fakes.Worktrees.LastCreatedPath!, "src", "new.cs")));
+
+        var pendingEdit = Assert.IsType<ToolProposalResult.AwaitingApproval>(await Tools.ProposeAsync(new ToolProposal(
+            session.Id,
+            session.ActiveRunId!,
+            session.WorkspaceId,
+            ToolAction.EditFile,
+            RelativePath: "src/app.cs",
+            OldText: "41",
+            NewText: "43")));
+        var editResolution = await _approvals.ResolveAsync(
+            pendingEdit.ApprovalId,
+            new ResolveApprovalRequest(ApprovalDecision.ApproveOnce, null),
+            $"approve-edit-{Guid.NewGuid():N}");
+        Assert.IsType<ToolProposalResult.Executed>(editResolution.ExecutionResult);
+        Assert.Contains("answer = 43", File.ReadAllText(Path.Combine(_fakes.Worktrees.LastCreatedPath!, "src", "app.cs")));
+        Assert.Contains("answer = 41", File.ReadAllText(Path.Combine(_workspace.RootPath, "src", "app.cs")));
+    }
+
+    [Fact]
     public async Task Plan_mode_proposals_never_reach_the_executors()
     {
         var planSession = await StartSessionAsync(SessionMode.Plan);

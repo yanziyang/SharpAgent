@@ -14,38 +14,103 @@ namespace SharpAgent.Runtime.Maf;
 /// </summary>
 public sealed class FacadeToolRegistry(
     RunContext context,
-    IToolProposalBridge bridge)
+    IToolProposalBridge bridge,
+    AgentToolOptions? options = null)
 {
+    public const string ReadToolName = "read";
+    public const string WriteToolName = "write";
+    public const string EditToolName = "edit";
+    public const string BashToolName = "bash";
+    public const string PowerShellToolName = "powershell";
+    public const string GrepToolName = "grep";
+    public const string FindToolName = "find";
+    public const string LsToolName = "ls";
     public const string UpdateTodosToolName = "update_todos";
+    public const string RepositoryStatusToolName = "repository_status";
     public const string ApplyPatchToolName = "apply_patch";
     public const string RunCommandToolName = "run_command";
 
     public IReadOnlyList<AIFunction> Create()
     {
-        var tools = new List<AIFunction>
+        var configured = options ?? AgentToolOptions.Default;
+        var tools = new List<AIFunction>();
+
+        if (configured.IsEnabled(ReadToolName))
         {
-            AIFunctionFactory.Create(ReadFile, new AIFunctionFactoryOptions { Name = "read_file" }),
-            AIFunctionFactory.Create(ListDirectory, new AIFunctionFactoryOptions { Name = "list_directory" }),
-            AIFunctionFactory.Create(SearchText, new AIFunctionFactoryOptions { Name = "search_text" }),
-            AIFunctionFactory.Create(RepositoryStatus, new AIFunctionFactoryOptions { Name = "repository_status" }),
-            AIFunctionFactory.Create(UpdateTodos, new AIFunctionFactoryOptions { Name = UpdateTodosToolName }),
-        };
+            tools.Add(AIFunctionFactory.Create(Read, new AIFunctionFactoryOptions { Name = ReadToolName }));
+        }
+
+        if (configured.IsEnabled(LsToolName))
+        {
+            tools.Add(AIFunctionFactory.Create(ListDirectory, new AIFunctionFactoryOptions { Name = LsToolName }));
+        }
+
+        if (configured.IsEnabled(GrepToolName))
+        {
+            tools.Add(AIFunctionFactory.Create(SearchText, new AIFunctionFactoryOptions { Name = GrepToolName }));
+        }
+
+        if (configured.IsEnabled(FindToolName))
+        {
+            tools.Add(AIFunctionFactory.Create(FindFiles, new AIFunctionFactoryOptions { Name = FindToolName }));
+        }
+
+        if (configured.IsEnabled(UpdateTodosToolName))
+        {
+            tools.Add(AIFunctionFactory.Create(UpdateTodos, new AIFunctionFactoryOptions { Name = UpdateTodosToolName }));
+        }
+
+        if (configured.IsEnabled(RepositoryStatusToolName))
+        {
+            tools.Add(AIFunctionFactory.Create(RepositoryStatus, new AIFunctionFactoryOptions { Name = RepositoryStatusToolName }));
+        }
 
         if (context.Mode == SessionMode.Execute)
         {
             // High-impact facades are approval-gated by the framework so the model
             // PROPOSES them; execution only happens after a canonical approval.
-            tools.Add(new ApprovalRequiredAIFunction(
-                AIFunctionFactory.Create(ApplyPatch, new AIFunctionFactoryOptions { Name = ApplyPatchToolName })));
-            tools.Add(new ApprovalRequiredAIFunction(
-                AIFunctionFactory.Create(RunCommand, new AIFunctionFactoryOptions { Name = RunCommandToolName })));
+            if (configured.IsEnabled(WriteToolName))
+            {
+                tools.Add(new ApprovalRequiredAIFunction(
+                    AIFunctionFactory.Create(Write, new AIFunctionFactoryOptions { Name = WriteToolName })));
+            }
+
+            if (configured.IsEnabled(EditToolName))
+            {
+                tools.Add(new ApprovalRequiredAIFunction(
+                    AIFunctionFactory.Create(Edit, new AIFunctionFactoryOptions { Name = EditToolName })));
+            }
+
+            if (configured.IsEnabled(ApplyPatchToolName))
+            {
+                tools.Add(new ApprovalRequiredAIFunction(
+                    AIFunctionFactory.Create(ApplyPatch, new AIFunctionFactoryOptions { Name = ApplyPatchToolName })));
+            }
+
+            if (configured.IsEnabled(BashToolName))
+            {
+                tools.Add(new ApprovalRequiredAIFunction(
+                    AIFunctionFactory.Create(Bash, new AIFunctionFactoryOptions { Name = BashToolName })));
+            }
+
+            if (configured.IsEnabled(PowerShellToolName))
+            {
+                tools.Add(new ApprovalRequiredAIFunction(
+                    AIFunctionFactory.Create(PowerShell, new AIFunctionFactoryOptions { Name = PowerShellToolName })));
+            }
+
+            if (configured.IsEnabled(RunCommandToolName))
+            {
+                tools.Add(new ApprovalRequiredAIFunction(
+                    AIFunctionFactory.Create(RunCommand, new AIFunctionFactoryOptions { Name = RunCommandToolName })));
+            }
         }
 
         return tools;
     }
 
     [Description("Read a text file inside the workspace. Returns bounded, redacted content.")]
-    private Task<string> ReadFile(
+    private Task<string> Read(
         [Description("Workspace-relative file path.")] string path,
         CancellationToken cancellationToken) =>
         ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.ReadFile, RelativePath: path), cancellationToken);
@@ -56,12 +121,19 @@ public sealed class FacadeToolRegistry(
         CancellationToken cancellationToken) =>
         ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.ListDirectory, RelativePath: path), cancellationToken);
 
-    [Description("Search files in a workspace-relative directory for a text query.")]
+    [Description("Search workspace text files recursively for a query. Results are bounded and redacted.")]
     private Task<string> SearchText(
         [Description("Workspace-relative directory path.")] string path,
         [Description("Text to find.")] string query,
         CancellationToken cancellationToken) =>
-        ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.SearchText, RelativePath: path, SearchQuery: query), cancellationToken);
+        ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.SearchText, RelativePath: path, SearchQuery: query, Recursive: true), cancellationToken);
+
+    [Description("Find files recursively by a workspace-relative name pattern such as *.cs. Results are bounded.")]
+    private Task<string> FindFiles(
+        [Description("Workspace-relative directory path.")] string path,
+        [Description("File name pattern, for example *.cs.")] string namePattern,
+        CancellationToken cancellationToken) =>
+        ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.FindFiles, RelativePath: path, NamePattern: namePattern), cancellationToken);
 
     [Description("Show the repository working-tree status.")]
     private Task<string> RepositoryStatus(CancellationToken cancellationToken) =>
@@ -79,12 +151,63 @@ public sealed class FacadeToolRegistry(
         CancellationToken cancellationToken) =>
         ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.ApplyPatch, ChangeSetId: changeSetId), cancellationToken);
 
+    [Description("Create or replace a text file inside the run worktree. Requires developer approval.")]
+    private Task<string> Write(
+        [Description("Workspace-relative file path.")] string path,
+        [Description("Complete UTF-8 text content, bounded to the configured file-change limit.")] string content,
+        CancellationToken cancellationToken) =>
+        ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.WriteFile, RelativePath: path, Content: content), cancellationToken);
+
+    [Description("Replace one unique text span in a workspace file. Requires developer approval.")]
+    private Task<string> Edit(
+        [Description("Workspace-relative file path.")] string path,
+        [Description("Existing text that must match exactly once.")] string oldText,
+        [Description("Replacement text.")] string newText,
+        CancellationToken cancellationToken) =>
+        ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.EditFile, RelativePath: path, OldText: oldText, NewText: newText), cancellationToken);
+
+    [Description("Run one approved Bash diagnostic from the server-side focused command catalog. Arbitrary shell scripts are rejected.")]
+    private Task<string> Bash(
+        [Description("Exact catalog command, for example pwd or bash --version.")] string command,
+        CancellationToken cancellationToken) =>
+        ProposeCommandAsync("bash", command, arguments: null, cancellationToken);
+
+    [Description("Run one approved Windows PowerShell diagnostic from the focused server-side catalog. Arbitrary scripts are rejected.")]
+    private Task<string> PowerShell(
+        [Description("Exact catalog command, for example Get-Date -Format o or Get-Location.")] string command,
+        CancellationToken cancellationToken) =>
+        ProposeCommandAsync("powershell", command, arguments: null, cancellationToken);
+
     [Description("Run a focused command from the approved catalog in the run worktree. Requires developer approval.")]
     private Task<string> RunCommand(
         [Description("Command name from the approved catalog (for example dotnet, npm, node).")] string commandName,
         [Description("Optional command arguments.")] IReadOnlyList<string>? arguments,
         CancellationToken cancellationToken) =>
         ProposeAsync(new ToolProposal(context.SessionId, context.RunId, context.WorkspaceId, ToolAction.RunCommand, CommandName: commandName, Arguments: arguments), cancellationToken);
+
+    private Task<string> ProposeCommandAsync(
+        string commandName,
+        string command,
+        IReadOnlyList<string>? arguments,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
+        var commandArguments = new List<string> { command };
+        if (arguments is not null)
+        {
+            commandArguments.AddRange(arguments);
+        }
+
+        return ProposeAsync(
+            new ToolProposal(
+                context.SessionId,
+                context.RunId,
+                context.WorkspaceId,
+                ToolAction.RunCommand,
+                CommandName: commandName,
+                Arguments: commandArguments),
+            cancellationToken);
+    }
 
     private async Task<string> ProposeAsync(ToolProposal proposal, CancellationToken cancellationToken)
     {

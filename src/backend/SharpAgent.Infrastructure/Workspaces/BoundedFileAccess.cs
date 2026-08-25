@@ -63,54 +63,143 @@ public sealed class BoundedFileAccess : IWorkspaceFileAccess
         string query,
         int maxResults,
         out bool resultsTruncated)
+        => SearchTextCore(directory, query, maxResults, recursive: false, out resultsTruncated);
+
+    public IReadOnlyList<string> SearchTextRecursive(
+        ResolvedTarget directory,
+        string query,
+        int maxResults,
+        out bool resultsTruncated)
+        => SearchTextCore(directory, query, maxResults, recursive: true, out resultsTruncated);
+
+    public IReadOnlyList<string> FindFiles(
+        ResolvedTarget directory,
+        string namePattern,
+        int maxResults,
+        out bool resultsTruncated)
     {
         resultsTruncated = false;
         var matches = new List<string>();
+        var pattern = string.IsNullOrWhiteSpace(namePattern) ? "*" : namePattern.Trim();
 
-        foreach (var file in new DirectoryInfo(directory.AbsolutePath).EnumerateFiles("*", SearchOption.TopDirectoryOnly))
+        try
         {
-            if (matches.Count >= maxResults)
+            foreach (var file in new DirectoryInfo(directory.AbsolutePath).EnumerateFiles(pattern, SafeEnumerationOptions))
             {
-                resultsTruncated = true;
-                break;
-            }
-
-            string content;
-            try
-            {
-                // Skip obvious binaries by null sniffing the first chunk.
-                using var stream = file.OpenRead();
-                var buffer = new byte[1024];
-                var read = stream.Read(buffer, 0, buffer.Length);
-                if (read > 0 && Array.IndexOf(buffer, (byte)0, 0, read) >= 0)
+                if (matches.Count >= maxResults)
                 {
-                    continue;
+                    resultsTruncated = true;
+                    break;
                 }
 
-                // The null sniff consumed the leading bytes; rewind before reading
-                // the full content, otherwise small files appear empty.
-                stream.Position = 0;
-
-                using var reader = new StreamReader(stream);
-                content = reader.ReadToEnd();
+                matches.Add(ToWorkspaceRelativePath(directory, file.FullName));
             }
-            catch (IOException)
-            {
-                continue;
-            }
-
-            var lines = content.Split('\n');
-            for (var index = 0; index < lines.Length && matches.Count < maxResults; index++)
-            {
-                if (lines[index].Contains(query, StringComparison.OrdinalIgnoreCase))
-                {
-                    matches.Add($"{file.Name}:{index + 1}: {lines[index].Trim()}");
-                }
-            }
+        }
+        catch (ArgumentException)
+        {
+            // Invalid wildcard syntax is treated as no matches; the caller still
+            // receives a bounded, non-sensitive result.
+        }
+        catch (IOException)
+        {
+            // A disappearing or inaccessible subtree is not allowed to escape the
+            // workspace tool boundary as an unbounded filesystem error.
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
 
         return matches;
     }
+
+    private static readonly EnumerationOptions SafeEnumerationOptions = new()
+    {
+        RecurseSubdirectories = true,
+        IgnoreInaccessible = true,
+        AttributesToSkip = FileAttributes.ReparsePoint,
+        ReturnSpecialDirectories = false,
+    };
+
+    private static readonly EnumerationOptions TopLevelEnumerationOptions = new()
+    {
+        RecurseSubdirectories = false,
+        IgnoreInaccessible = true,
+        AttributesToSkip = FileAttributes.ReparsePoint,
+        ReturnSpecialDirectories = false,
+    };
+
+    private static List<string> SearchTextCore(
+        ResolvedTarget directory,
+        string query,
+        int maxResults,
+        bool recursive,
+        out bool resultsTruncated)
+    {
+        resultsTruncated = false;
+        var matches = new List<string>();
+
+        try
+        {
+            var enumerationOptions = recursive ? SafeEnumerationOptions : TopLevelEnumerationOptions;
+            foreach (var file in new DirectoryInfo(directory.AbsolutePath).EnumerateFiles("*", enumerationOptions))
+            {
+                if (matches.Count >= maxResults)
+                {
+                    resultsTruncated = true;
+                    break;
+                }
+
+                string content;
+                try
+                {
+                    // Skip obvious binaries by null sniffing the first chunk.
+                    using var stream = file.OpenRead();
+                    var buffer = new byte[1024];
+                    var read = stream.Read(buffer, 0, buffer.Length);
+                    if (read > 0 && Array.IndexOf(buffer, (byte)0, 0, read) >= 0)
+                    {
+                        continue;
+                    }
+
+                    // The null sniff consumed the leading bytes; rewind before reading
+                    // the full content, otherwise small files appear empty.
+                    stream.Position = 0;
+
+                    using var reader = new StreamReader(stream);
+                    content = reader.ReadToEnd();
+                }
+                catch (IOException)
+                {
+                    continue;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    continue;
+                }
+
+                var relativePath = ToWorkspaceRelativePath(directory, file.FullName);
+                var lines = content.Split('\n');
+                for (var index = 0; index < lines.Length && matches.Count < maxResults; index++)
+                {
+                    if (lines[index].Contains(query, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matches.Add($"{relativePath}:{index + 1}: {lines[index].Trim()}");
+                    }
+                }
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+
+        return matches;
+    }
+
+    private static string ToWorkspaceRelativePath(ResolvedTarget directory, string absolutePath) =>
+        Path.GetRelativePath(directory.AbsolutePath, absolutePath).Replace(Path.DirectorySeparatorChar, '/');
 
     public string? FileHash(ResolvedTarget target)
     {

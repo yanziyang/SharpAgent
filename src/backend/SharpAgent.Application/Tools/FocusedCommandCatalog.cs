@@ -22,6 +22,21 @@ public sealed class FocusedCommandCatalog
             ["dotnet"] = new("dotnet", []),
             ["npm"] = new("npm", []),
             ["node"] = new("node", []),
+            // Windows PowerShell 5.1 is present on Windows 11. PowerShell 7 and
+            // Git Bash can be provided by PATH; both remain approval-gated and
+            // execute only through the hardened server-side process runner. The
+            // inline command sets are deliberately tiny: these tools are
+            // adapters for focused diagnostics, not a general-purpose terminal.
+            ["powershell"] = new(
+                "powershell.exe",
+                ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command"],
+                new HashSet<string>(
+                    ["Get-Date -Format o", "Get-Location", "$PSVersionTable.PSVersion.ToString()"],
+                    StringComparer.Ordinal)),
+            ["bash"] = new(
+                "bash.exe",
+                ["-lc"],
+                new HashSet<string>(["pwd", "bash --version"], StringComparer.Ordinal)),
         });
 
     public bool TryResolve(string commandName, out FocusedCommandTemplate template)
@@ -33,9 +48,36 @@ public sealed class FocusedCommandCatalog
 
         return _commands.TryGetValue(commandName, out template!);
     }
+
+    public bool TryResolve(
+        string commandName,
+        IReadOnlyList<string>? arguments,
+        out FocusedCommandTemplate template)
+    {
+        if (!TryResolve(commandName, out template))
+        {
+            return false;
+        }
+
+        return template.Accepts(arguments ?? []);
+    }
 }
 
-public sealed record FocusedCommandTemplate(string Executable, IReadOnlyList<string> BaseArguments);
+public sealed record FocusedCommandTemplate(
+    string Executable,
+    IReadOnlyList<string> BaseArguments,
+    IReadOnlySet<string>? AllowedInlineCommands = null)
+{
+    public bool Accepts(IReadOnlyList<string> arguments)
+    {
+        if (AllowedInlineCommands is null)
+        {
+            return true;
+        }
+
+        return arguments.Count == 1 && AllowedInlineCommands.Contains(arguments[0]);
+    }
+}
 
 /// <summary>Immutable payload persisted with an approval enabling exact re-execution.</summary>
 public sealed record ApprovalStoredPayload(

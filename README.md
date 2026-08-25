@@ -62,6 +62,31 @@ IDs; the browser never receives the API key.
 Restart the API after changing the local configuration. The browser
 receives only provider-neutral profile IDs and safe capability metadata.
 
+### Agent tools
+
+The runtime exposes a guarded, Pi-style tool surface to the model. In Plan mode
+the read-only tools are `read`, `ls`, `grep`, `find`, `repository_status`, and
+`update_todos`. Execute mode additionally exposes approval-gated `write`,
+`edit`, `bash`, `powershell`, `apply_patch`, and `run_command`.
+
+Tools can be filtered server-side in `AgentTools` in the root
+`appsettings.Local.json`:
+
+```json
+"AgentTools": {
+  "Enabled": [],
+  "Disabled": ["bash"]
+}
+```
+
+An empty `Enabled` list keeps the built-in set; `Disabled` always wins. File
+tools remain workspace-bound, and writes, edits, Bash, PowerShell, patches, and
+commands still pass through SharpAgent policy and approval checks. The Bash and
+PowerShell adapters accept only exact diagnostic entries from the server-side
+focused command catalog; they do not provide an arbitrary terminal. PowerShell
+uses the Windows host catalog; Bash is available when `bash.exe` is installed
+and on the server process PATH.
+
 For troubleshooting, set `Troubleshooting:LoggingEnabled` to `false` in the root
 `appsettings.Local.json` to disable server logging. Logging is server-side only;
 provider credentials, raw provider payloads, and hidden reasoning are never sent

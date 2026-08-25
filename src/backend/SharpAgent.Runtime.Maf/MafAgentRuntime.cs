@@ -15,7 +15,10 @@ namespace SharpAgent.Runtime.Maf;
 /// construction, facade tools, todo behavior, compaction, cancellation and the
 /// canonical event translation. Provider/MAF types never escape this adapter.
 /// </summary>
-public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logger = null) : IAgentRuntime
+public sealed class MafAgentRuntime(
+    IClock clock,
+    ILogger<MafAgentRuntime>? logger = null,
+    AgentToolOptions? toolOptions = null) : IAgentRuntime
 {
     public const int MaxAssistantSummaryLength = 2_000;
     public const int MaxOutputTokens = 2_048;
@@ -64,7 +67,7 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
         durationCts.CancelAfter(context.Limits.MaxDuration);
         var runCt = durationCts.Token;
 
-        var facades = new FacadeToolRegistry(context, context.ToolBridge);
+        var facades = new FacadeToolRegistry(context, context.ToolBridge, toolOptions);
 
         // Compaction pipeline: collapse old tool groups, then summarize with the
         // same provider, with a truncation backstop. The notifier lets the runtime

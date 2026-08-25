@@ -33,6 +33,8 @@ public static class ActionFingerprint
             changeSetId = proposal.ChangeSetId,
             relativePath = proposal.RelativePath,
             searchQuery = proposal.SearchQuery,
+            namePattern = proposal.NamePattern,
+            recursive = proposal.Recursive,
             targets = targets.Select(static t => new { t.AbsolutePath, t.RelativePath }).ToArray(),
             patchContentHash = patchContentHash ?? string.Empty,
             policyRulesSha256 = Sha256Hex(policyRulesJson),
