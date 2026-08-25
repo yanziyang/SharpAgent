@@ -42,7 +42,15 @@ public sealed record AuditEventDto(
     long Sequence,
     string Type,
     DateTimeOffset OccurredAtUtc,
-    string PayloadJson);
+    string PayloadJson,
+    string? SessionId = null,
+    string? RunId = null,
+    string? EventId = null);
+
+public sealed record SessionEventReplay(
+    IReadOnlyList<AuditEventDto> Events,
+    long LastSequence,
+    bool HasGap);
 
 public sealed record CreateSessionRequest(
     string WorkspaceId,

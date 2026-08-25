@@ -40,7 +40,8 @@ public sealed class ApprovalsService(
     IIdempotencyStore idempotencyStore,
     IUnitOfWork unitOfWork,
     IClock clock,
-    WorkspaceToolService toolService)
+    WorkspaceToolService toolService,
+    ISessionEventPublisher? eventPublisher = null)
 {
     private static readonly JsonSerializerOptions PayloadOptions = new(JsonSerializerDefaults.Web);
 
@@ -181,6 +182,7 @@ public sealed class ApprovalsService(
             clock.UtcNow);
 
         await events.AddAsync(auditEvent, ct).ConfigureAwait(false);
+        unitOfWork.RegisterAfterCommit(() => eventPublisher?.Publish(auditEvent));
     }
 
     private static List<string> ParsePaths(string json)

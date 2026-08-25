@@ -30,14 +30,64 @@ public sealed class RunOrchestrator(
     IUnitOfWork unitOfWork,
     IClock clock,
     IAgentRuntime runtime,
-    WorkspaceToolService toolService)
+    WorkspaceToolService toolService,
+    ISessionEventPublisher? eventPublisher = null)
 {
     private static readonly JsonSerializerOptions PayloadOptions = new(JsonSerializerDefaults.Web);
 
     /// <summary>Maximum safe summary length kept for resume; everything else is truncated.</summary>
     public const int MaxSummaryCharacters = 4_000;
 
-    public async Task<RunOutcome> RunAsync(string sessionId, CancellationToken cancellationToken = default)
+    public Task<RunOutcome> RunAsync(string sessionId, CancellationToken cancellationToken = default) =>
+        RunAsyncCore(sessionId, expectedRunId: null, cancellationToken);
+
+    /// <summary>
+    /// Executes the specific run that was queued by the start command. The
+    /// identity check prevents a stale queue item from starting a later resume.
+    /// </summary>
+    public Task<RunOutcome> RunAsync(
+        string sessionId,
+        string expectedRunId,
+        CancellationToken cancellationToken = default) =>
+        RunAsyncCore(sessionId, expectedRunId, cancellationToken);
+
+    /// <summary>
+    /// Converts an unrecoverable coordinator/setup failure into a durable
+    /// interrupted run. The generic message deliberately omits provider or
+    /// exception details from the user-visible audit stream.
+    /// </summary>
+    public async Task InterruptAfterFailureAsync(
+        string sessionId,
+        string runId,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await sessions.FindAsync(sessionId, cancellationToken).ConfigureAwait(false);
+        if (session?.ActiveRunId is null
+            || !string.Equals(session.ActiveRunId, runId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var now = clock.UtcNow;
+        const string safeReason = "The run was interrupted before it could complete safely.";
+        session.InterruptActiveRun(safeReason, now);
+        await leases.ReleaseForRunAsync(runId, now, cancellationToken).ConfigureAwait(false);
+        await RemoveWorktreeAsync(session, runId, cancellationToken).ConfigureAwait(false);
+        var auditEvent = await AppendEventAsync(
+                session,
+                runId,
+                AuditEventTypes.Status,
+                new { reason = "coordinator_failure", message = safeReason },
+                cancellationToken)
+            .ConfigureAwait(false);
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        eventPublisher?.Publish(auditEvent);
+    }
+
+    private async Task<RunOutcome> RunAsyncCore(
+        string sessionId,
+        string? expectedRunId,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
@@ -47,6 +97,12 @@ public sealed class RunOrchestrator(
         if (session.ActiveRunId is null)
         {
             throw new ConflictException("no_active_run", "Start a run before executing it.");
+        }
+
+        if (expectedRunId is not null
+            && !string.Equals(session.ActiveRunId, expectedRunId, StringComparison.Ordinal))
+        {
+            throw new ConflictException("run_not_active", "The queued run is no longer the active run.");
         }
 
         var run = session.Runs.Single(candidate => candidate.Id == session.ActiveRunId);
@@ -72,7 +128,7 @@ public sealed class RunOrchestrator(
         var historySummary = await BuildHistorySummaryAsync(session, run, cancellationToken).ConfigureAwait(false);
 
         var context = new RunContext(
-session.Id,
+            session.Id,
             run.Id,
             workspace.Id,
             workspace.CanonicalRootPath ?? string.Empty,
@@ -92,7 +148,7 @@ session.Id,
             historySummary,
             await LoadDecisionsSummaryAsync(session.Id, cancellationToken).ConfigureAwait(false));
 
-        var sink = new PersistingEventSink(session, run.Id, events, todos, unitOfWork, clock);
+        var sink = new PersistingEventSink(session, run.Id, events, todos, unitOfWork, clock, eventPublisher);
 
         RunOutcome outcome;
         try
@@ -107,28 +163,53 @@ session.Id,
         }
 
         var now = clock.UtcNow;
+        var terminalEvents = new List<AuditEvent>();
         switch (outcome.StopReason)
         {
             case RunStopReason.Completed:
                 session.CompleteActiveRun(SafeSummary(outcome.SafeMessage), now);
-                await AppendEventAsync(session, run.Id, AuditEventTypes.RunCompleted, new { summary = SafeSummary(outcome.SafeMessage) }, cancellationToken).ConfigureAwait(false);
+                terminalEvents.Add(await AppendEventAsync(
+                        session,
+                        run.Id,
+                        AuditEventTypes.RunCompleted,
+                        new { summary = SafeSummary(outcome.SafeMessage) },
+                        cancellationToken)
+                    .ConfigureAwait(false));
                 break;
 
             case RunStopReason.AwaitingApproval:
             case RunStopReason.PolicyDenied:
             case RunStopReason.LimitReached:
                 session.InterruptActiveRun(outcome.SafeMessage ?? outcome.StopReason.ToString(), now);
-                await AppendEventAsync(session, run.Id, AuditEventTypes.Status, new { reason = outcome.StopReason.ToString(), message = SafeSummary(outcome.SafeMessage) }, cancellationToken).ConfigureAwait(false);
+                terminalEvents.Add(await AppendEventAsync(
+                        session,
+                        run.Id,
+                        AuditEventTypes.Status,
+                        new { reason = outcome.StopReason.ToString(), message = SafeSummary(outcome.SafeMessage) },
+                        cancellationToken)
+                    .ConfigureAwait(false));
                 break;
 
             case RunStopReason.ProviderError:
                 session.FailActiveRun(outcome.SafeMessage ?? "Provider error.", now);
-                await AppendEventAsync(session, run.Id, AuditEventTypes.RunFailed, new { reason = SafeSummary(outcome.SafeMessage) }, cancellationToken).ConfigureAwait(false);
+                terminalEvents.Add(await AppendEventAsync(
+                        session,
+                        run.Id,
+                        AuditEventTypes.RunFailed,
+                        new { reason = SafeSummary(outcome.SafeMessage) },
+                        cancellationToken)
+                    .ConfigureAwait(false));
                 break;
 
             case RunStopReason.Cancelled:
                 session.CancelActiveRun(outcome.SafeMessage ?? "Cancelled.", now);
-                await AppendEventAsync(session, run.Id, AuditEventTypes.RunCancelled, new { reason = "cancelled" }, cancellationToken).ConfigureAwait(false);
+                terminalEvents.Add(await AppendEventAsync(
+                        session,
+                        run.Id,
+                        AuditEventTypes.RunCancelled,
+                        new { reason = "cancelled" },
+                        cancellationToken)
+                    .ConfigureAwait(false));
                 break;
         }
 
@@ -136,6 +217,14 @@ session.Id,
         await RemoveWorktreeAsync(session, run.Id, cancellationToken).ConfigureAwait(false);
         await sink.PersistTodosAsync(cancellationToken).ConfigureAwait(false);
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (eventPublisher is not null)
+        {
+            foreach (var auditEvent in terminalEvents)
+            {
+                eventPublisher.Publish(auditEvent);
+            }
+        }
 
         return outcome;
     }
@@ -190,7 +279,7 @@ session.Id,
         return [.. list.Take(5).Select(static approval => approval.Summary)];
     }
 
-    private async Task AppendEventAsync(
+    private async Task<AuditEvent> AppendEventAsync(
         Domain.Sessions.Session session,
         string runId,
         string type,
@@ -207,6 +296,7 @@ session.Id,
             clock.UtcNow);
 
         await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
+        return auditEvent;
     }
 
     private async Task RemoveWorktreeAsync(Domain.Sessions.Session session, string runId, CancellationToken cancellationToken)
@@ -246,12 +336,13 @@ session.Id,
     /// Todo events also update the retained todo store for resume.
     /// </summary>
     private sealed class PersistingEventSink(
-            Domain.Sessions.Session session,
-            string runId,
-            IAuditEventRepository events,
-            ITodoRepository todos,
-            IUnitOfWork unitOfWork,
-            IClock clock) : IRunEventSink
+        Domain.Sessions.Session session,
+        string runId,
+        IAuditEventRepository events,
+        ITodoRepository todos,
+        IUnitOfWork unitOfWork,
+        IClock clock,
+        ISessionEventPublisher? eventPublisher) : IRunEventSink
     {
         public int ToolCallCount { get; private set; }
 
@@ -273,6 +364,7 @@ session.Id,
 
             await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
             await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            eventPublisher?.Publish(auditEvent);
         }
 
         /// <summary>Persists todos collected so far. Called once by the orchestrator at the end.</summary>

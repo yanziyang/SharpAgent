@@ -3,8 +3,8 @@ using SharpAgent.Api.Endpoints;
 namespace SharpAgent.Api.Endpoints;
 
 /// <summary>
-/// Maps the public REST surface. Phase 1 adds sessions, workspaces, and catalogs;
-/// SSE events, approvals, and provider validation arrive with later phases.
+/// Maps the public REST surface: health, sessions, catalogs, approvals, and the
+/// replayable session event stream.
 /// </summary>
 public static class ApiEndpointExtensions
 {

@@ -77,7 +77,11 @@ public interface IAuditEventRepository
     /// <summary>Events ordered by sequence ascending.</summary>
     Task<IReadOnlyList<AuditEvent>> ReplayAsync(string sessionId, CancellationToken cancellationToken);
 
-
+    /// <summary>Events strictly after a durable session sequence.</summary>
+    Task<IReadOnlyList<AuditEvent>> ReplayAfterAsync(
+        string sessionId,
+        long afterSequence,
+        CancellationToken cancellationToken);
 }
 
 public interface IRunLeaseRepository
@@ -106,6 +110,9 @@ public interface IIdempotencyStore
 /// <summary>Bounded transaction abstraction so services stay persistence-agnostic.</summary>
 public interface IUnitOfWork
 {
+    /// <summary>Runs a synchronous publication only after the enclosing save commits.</summary>
+    void RegisterAfterCommit(Action callback);
+
     /// <summary>Persists pending changes of all repositories in one atomic unit.</summary>
     Task SaveChangesAsync(CancellationToken cancellationToken);
 

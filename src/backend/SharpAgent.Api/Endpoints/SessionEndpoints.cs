@@ -63,6 +63,7 @@ public static class SessionEndpoints
                 [FromBody] StartRunRequest? request,
                 [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
                 SessionService sessionService,
+                IRunCoordinator runCoordinator,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -74,10 +75,21 @@ public static class SessionEndpoints
                 }
 
                 var result = await sessionService
-                    .StartOrResumeAsync(sessionId, request ?? new StartRunRequest(null, null), idempotencyKey, cancellationToken)
+                    .StartOrResumeWithStatusAsync(
+                        sessionId,
+                        request ?? new StartRunRequest(null, null),
+                        idempotencyKey,
+                        cancellationToken)
                     .ConfigureAwait(false);
 
-                return Results.Accepted($"/api/sessions/{sessionId}", result);
+                if (!result.Replayed)
+                {
+                    await runCoordinator
+                        .QueueAsync(new RunWorkItem(sessionId, result.Value.Run.Id), CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+
+                return Results.Accepted($"/api/sessions/{sessionId}", result.Value);
             });
 
         sessions.MapPost(
@@ -86,6 +98,7 @@ public static class SessionEndpoints
                 string sessionId,
                 [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
                 SessionService sessionService,
+                IRunCoordinator runCoordinator,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -97,6 +110,7 @@ public static class SessionEndpoints
                 }
 
                 var dto = await sessionService.CancelAsync(sessionId, idempotencyKey, cancellationToken).ConfigureAwait(false);
+                runCoordinator.RequestCancellation(sessionId);
                 return Results.Accepted($"/api/sessions/{sessionId}", dto);
             });
 
@@ -140,8 +154,17 @@ public static class SessionEndpoints
 
         sessions.MapGet(
             "/{sessionId}/events",
-            async (string sessionId, SessionService sessionService, CancellationToken cancellationToken) =>
-                Results.Ok(await sessionService.ReplayEventsAsync(sessionId, cancellationToken).ConfigureAwait(false)));
+            (HttpContext context,
+                string sessionId,
+                SessionService sessionService,
+                ISessionEventPublisher eventPublisher,
+                CancellationToken cancellationToken) =>
+                SessionEventEndpoints.HandleAsync(
+                    context,
+                    sessionId,
+                    sessionService,
+                    eventPublisher,
+                    cancellationToken));
 
         sessions.MapGet(
             "/{sessionId}/approvals/pending",

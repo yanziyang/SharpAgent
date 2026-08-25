@@ -4,6 +4,7 @@ using SharpAgent.Api.Composition;
 using SharpAgent.Api.Endpoints;
 using SharpAgent.Api.ErrorHandling;
 using SharpAgent.Api.Startup;
+using SharpAgent.Api.Runtime;
 using SharpAgent.Application;
 using SharpAgent.Providers;
 using SharpAgent.Runtime.Maf;
@@ -22,6 +23,7 @@ builder.Services.AddProviderAdapters();
 builder.Services.AddMafRuntime();
 builder.Services.AddSharpAgentServices(builder.Configuration);
 builder.Services.AddHostedService<PersistenceStartupService>();
+builder.Services.AddRunCoordinator();
 
 var app = builder.Build();
 

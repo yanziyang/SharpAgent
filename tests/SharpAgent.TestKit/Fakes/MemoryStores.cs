@@ -165,6 +165,21 @@ public sealed class MemoryAuditEventRepository : IAuditEventRepository
             [.. perSession.Values.OrderBy(static auditEvent => auditEvent.Sequence)]);
     }
 
+    public Task<IReadOnlyList<AuditEvent>> ReplayAfterAsync(
+        string sessionId,
+        long afterSequence,
+        CancellationToken cancellationToken)
+    {
+        var perSession = _events.TryGetValue(sessionId, out var events)
+            ? events
+            : new ConcurrentDictionary<long, AuditEvent>();
+
+        return Task.FromResult<IReadOnlyList<AuditEvent>>(
+            [.. perSession.Values
+                .Where(auditEvent => auditEvent.Sequence > afterSequence)
+                .OrderBy(static auditEvent => auditEvent.Sequence)]);
+    }
+
     public Task<long> GetMaxSequenceAsync(string sessionId, CancellationToken cancellationToken) =>
         Task.FromResult(
             _events.TryGetValue(sessionId, out var events) && !events.IsEmpty

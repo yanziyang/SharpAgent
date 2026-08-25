@@ -34,7 +34,8 @@ public sealed class WorkspaceToolService(
     IWorkspaceFileAccess fileAccess,
     IProcessRunner processRunner,
     IGitWorktreeService worktreeService,
-    FocusedCommandCatalog commandCatalog)
+    FocusedCommandCatalog commandCatalog,
+    ISessionEventPublisher? eventPublisher = null)
 {
     public const int MaxReadCharacters = 8_000;
     public const int MaxListEntries = 200;
@@ -479,6 +480,7 @@ public sealed class WorkspaceToolService(
             clock.UtcNow);
 
         await events.AddAsync(auditEvent, ct).ConfigureAwait(false);
+        unitOfWork.RegisterAfterCommit(() => eventPublisher?.Publish(auditEvent));
     }
 }
 

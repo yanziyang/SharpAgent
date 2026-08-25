@@ -82,6 +82,21 @@ public sealed class EfAuditEventRepository(SharpAgentDbContext context) : IAudit
 
         return list.AsReadOnly();
     }
+
+    public async Task<IReadOnlyList<AuditEvent>> ReplayAfterAsync(
+        string sessionId,
+        long afterSequence,
+        CancellationToken cancellationToken)
+    {
+        var list = await context.AuditEvents
+            .AsNoTracking()
+            .Where(auditEvent => auditEvent.SessionId == sessionId && auditEvent.Sequence > afterSequence)
+            .OrderBy(static auditEvent => auditEvent.Sequence)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return list.AsReadOnly();
+    }
 }
 
 public sealed class EfTodoRepository(SharpAgentDbContext context) : ITodoRepository

@@ -6,11 +6,20 @@ namespace SharpAgent.TestKit.Fakes;
 /// <summary>Pass-through unit of work; application tests do not exercise real transactions.</summary>
 public sealed class PassThroughUnitOfWork : IUnitOfWork
 {
+    private readonly List<Action> _afterCommit = [];
+
     public int SaveCalls { get; private set; }
+
+    public void RegisterAfterCommit(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        _afterCommit.Add(callback);
+    }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         SaveCalls++;
+        DispatchAfterCommit();
         return Task.CompletedTask;
     }
 
@@ -27,6 +36,16 @@ public sealed class PassThroughUnitOfWork : IUnitOfWork
         var result = await action(cancellationToken).ConfigureAwait(false);
         await SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return result;
+    }
+
+    private void DispatchAfterCommit()
+    {
+        var callbacks = _afterCommit.ToArray();
+        _afterCommit.Clear();
+        foreach (var callback in callbacks)
+        {
+            callback();
+        }
     }
 }
 

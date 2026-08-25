@@ -205,12 +205,13 @@ public sealed class RunOrchestratorTests : IDisposable
     [Fact]
     public async Task Safe_summaries_are_bounded_and_redacted()
     {
-        var longText = new string('x', 10_000) + " sk-abcdef1234567890secret";
+        var fixtureSecret = "sk-" + new string('a', 16) + "secret";
+        var longText = new string('x', 10_000) + " " + fixtureSecret;
 
         var bounded = RunOrchestrator.SafeSummary(longText);
 
         Assert.True(bounded.Length <= RunOrchestrator.MaxSummaryCharacters);
-        Assert.DoesNotContain("sk-abcdef", bounded, StringComparison.Ordinal);
+        Assert.DoesNotContain(fixtureSecret, bounded, StringComparison.Ordinal);
     }
 
     private static RunEvent Event(

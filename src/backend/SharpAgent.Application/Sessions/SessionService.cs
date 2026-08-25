@@ -23,7 +23,8 @@ public sealed class SessionService(
     IGitWorktreeService worktrees,
     IIdempotencyStore idempotencyStore,
     IUnitOfWork unitOfWork,
-    IClock clock)
+    IClock clock,
+    ISessionEventPublisher? eventPublisher = null)
 {
     public const int MaxTaskLength = 8_000;
 
@@ -39,7 +40,7 @@ public sealed class SessionService(
             idempotencyKey,
             OperationNames.CreateSession,
             request,
-            async transactionCancellationToken =>
+            async (transactionCancellationToken, pendingEvents) =>
             {
                 ValidateCreateRequest(request);
 
@@ -62,28 +63,38 @@ public sealed class SessionService(
                     workspace.Id, request.Task, request.Mode, profile.Id, request.PolicyProfileId, now);
 
                 await sessions.AddAsync(session, transactionCancellationToken).ConfigureAwait(false);
-                await AppendEventAsync(
-                    session,
-                    runId: null,
-                    AuditEventTypes.SessionCreated,
-                    new { workspaceId = workspace.Id, mode = request.Mode.ToString().ToLowerInvariant() },
-                    transactionCancellationToken).ConfigureAwait(false);
+                pendingEvents.Add(await AppendEventAsync(
+                        session,
+                        runId: null,
+                        AuditEventTypes.SessionCreated,
+                        new { workspaceId = workspace.Id, mode = request.Mode.ToString().ToLowerInvariant() },
+                        transactionCancellationToken)
+                    .ConfigureAwait(false));
 
                 return session;
             },
             Project,
             cancellationToken);
 
-    public Task<StartRunResult> StartOrResumeAsync(
+    public async Task<StartRunResult> StartOrResumeAsync(
         string sessionId,
         StartRunRequest request,
         string idempotencyKey,
         CancellationToken cancellationToken = default) =>
-        WithIdempotency(
+        (await StartOrResumeWithStatusAsync(sessionId, request, idempotencyKey, cancellationToken)
+            .ConfigureAwait(false)).Value;
+
+    /// <summary>Returns replay metadata so the API never queues an idempotent retry twice.</summary>
+    public Task<IdempotentResult<StartRunResult>> StartOrResumeWithStatusAsync(
+        string sessionId,
+        StartRunRequest request,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        WithIdempotencyResult(
             idempotencyKey,
             OperationNames.StartRun,
             new { sessionId, request },
-            async transactionCancellationToken =>
+            async (transactionCancellationToken, pendingEvents) =>
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
                 ArgumentNullException.ThrowIfNull(request);
@@ -128,18 +139,19 @@ public sealed class SessionService(
                 await leases.AddAsync(RunLease.Acquire(session.Id, run.Id, clock.UtcNow), transactionCancellationToken)
                     .ConfigureAwait(false);
 
-                await AppendEventAsync(
-                    session,
-                    run.Id,
-                    AuditEventTypes.RunStarted,
-                    new
-                    {
-                        runId = run.Id,
-                        sequence = run.Sequence,
-                        mode = session.Mode.ToString().ToLowerInvariant(),
-                        resumed = run.ResumeSourceRunId is not null,
-                    },
-                    transactionCancellationToken).ConfigureAwait(false);
+                pendingEvents.Add(await AppendEventAsync(
+                        session,
+                        run.Id,
+                        AuditEventTypes.RunStarted,
+                        new
+                        {
+                            runId = run.Id,
+                            sequence = run.Sequence,
+                            mode = session.Mode.ToString().ToLowerInvariant(),
+                            resumed = run.ResumeSourceRunId is not null,
+                        },
+                        transactionCancellationToken)
+                    .ConfigureAwait(false));
 
                 return session;
             },
@@ -154,7 +166,7 @@ public sealed class SessionService(
             idempotencyKey,
             OperationNames.CancelRun,
             new { sessionId },
-            async transactionCancellationToken =>
+            async (transactionCancellationToken, pendingEvents) =>
             {
                 var session = await RequireSessionAsync(sessionId, transactionCancellationToken).ConfigureAwait(false);
 
@@ -169,12 +181,13 @@ public sealed class SessionService(
                     .ConfigureAwait(false);
                 await RemoveWorktreeAsync(session, cancelledRunId!, transactionCancellationToken).ConfigureAwait(false);
 
-                await AppendEventAsync(
-                    session,
-                    cancelledRunId,
-                    AuditEventTypes.RunCancelled,
-                    new { reason = "cancelled_by_developer" },
-                    transactionCancellationToken).ConfigureAwait(false);
+                pendingEvents.Add(await AppendEventAsync(
+                        session,
+                        cancelledRunId,
+                        AuditEventTypes.RunCancelled,
+                        new { reason = "cancelled_by_developer" },
+                        transactionCancellationToken)
+                    .ConfigureAwait(false));
 
                 return session;
             },
@@ -189,7 +202,7 @@ public sealed class SessionService(
             idempotencyKey,
             OperationNames.ArchiveSession,
             new { sessionId, archive = true },
-            async transactionCancellationToken =>
+            async (transactionCancellationToken, _) =>
             {
                 var session = await RequireSessionAsync(sessionId, transactionCancellationToken).ConfigureAwait(false);
                 session.Archive(clock.UtcNow);
@@ -206,7 +219,7 @@ public sealed class SessionService(
             idempotencyKey,
             OperationNames.RestoreSession,
             new { sessionId, restore = true },
-            async transactionCancellationToken =>
+            async (transactionCancellationToken, _) =>
             {
                 var session = await RequireSessionAsync(sessionId, transactionCancellationToken).ConfigureAwait(false);
                 session.Restore(clock.UtcNow);
@@ -236,16 +249,56 @@ public sealed class SessionService(
         return [.. recent.Select(ProjectSummary)];
     }
 
-    /// <summary>Ordered replay of the session audit history (SSE arrives in a later phase).</summary>
-    public async Task<IReadOnlyList<AuditEventDto>> ReplayEventsAsync(string sessionId, CancellationToken cancellationToken = default)
+    /// <summary>Ordered JSON replay retained for non-streaming clients.</summary>
+    public async Task<IReadOnlyList<AuditEventDto>> ReplayEventsAsync(
+        string sessionId,
+        CancellationToken cancellationToken = default)
     {
-        _ = await RequireSessionAsync(sessionId, cancellationToken).ConfigureAwait(false);
-        var replay = await events.ReplayAsync(sessionId, cancellationToken).ConfigureAwait(false);
-        return [.. replay.Select(static auditEvent => new AuditEventDto(
+        var replay = await ReplayEventsWithMetadataAsync(sessionId, 0, cancellationToken).ConfigureAwait(false);
+        return replay.Events;
+    }
+
+    /// <summary>
+    /// Reads the durable suffix after a reconnect watermark and detects missing
+    /// sequences so the client can refetch the authoritative session projection.
+    /// </summary>
+    public async Task<SessionEventReplay> ReplayEventsWithMetadataAsync(
+        string sessionId,
+        long afterSequence,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(afterSequence);
+
+        var session = await RequireSessionAsync(sessionId, cancellationToken).ConfigureAwait(false);
+        var replay = await events.ReplayAfterAsync(sessionId, afterSequence, cancellationToken).ConfigureAwait(false);
+        var projected = replay.Select(static auditEvent => new AuditEventDto(
             auditEvent.Sequence,
             auditEvent.Type,
             auditEvent.OccurredAtUtc,
-            auditEvent.PayloadJson))];
+            auditEvent.PayloadJson,
+            auditEvent.SessionId,
+            auditEvent.RunId,
+            auditEvent.Id)).ToList();
+
+        var expected = afterSequence + 1;
+        var hasGap = afterSequence > session.LastEventSequence
+                     || (afterSequence < session.LastEventSequence && projected.Count == 0);
+        foreach (var auditEvent in projected)
+        {
+            if (auditEvent.Sequence != expected)
+            {
+                hasGap = true;
+            }
+
+            expected = auditEvent.Sequence + 1;
+        }
+
+        if (expected - 1 < session.LastEventSequence)
+        {
+            hasGap = true;
+        }
+
+        return new SessionEventReplay(projected.AsReadOnly(), session.LastEventSequence, hasGap);
     }
 
     /// <summary>Todos retained across resume; proves AC-05 context survival at store level.</summary>
@@ -264,11 +317,30 @@ public sealed class SessionService(
         string idempotencyKey,
         string operation,
         object requestPayload,
-        Func<CancellationToken, Task<TAggregate>> mutate,
+        Func<CancellationToken, List<AuditEvent>, Task<TAggregate>> mutate,
+        Func<TAggregate, TProjection> project,
+        CancellationToken cancellationToken) where TProjection : class
+    {
+        return (await WithIdempotencyResult(
+                idempotencyKey,
+                operation,
+                requestPayload,
+                mutate,
+                project,
+                cancellationToken)
+            .ConfigureAwait(false)).Value;
+    }
+
+    private async Task<IdempotentResult<TProjection>> WithIdempotencyResult<TAggregate, TProjection>(
+        string idempotencyKey,
+        string operation,
+        object requestPayload,
+        Func<CancellationToken, List<AuditEvent>, Task<TAggregate>> mutate,
         Func<TAggregate, TProjection> project,
         CancellationToken cancellationToken) where TProjection : class
     {
         var requestHash = IdempotencyService.HashPayload(requestPayload);
+        var pendingEvents = new List<AuditEvent>();
 
         var result = await Idempotency.ExecuteAsync(
             unitOfWork,
@@ -277,12 +349,20 @@ public sealed class SessionService(
             requestHash,
             async transactionCancellationToken =>
             {
-                var aggregate = await mutate(transactionCancellationToken).ConfigureAwait(false);
+                var aggregate = await mutate(transactionCancellationToken, pendingEvents).ConfigureAwait(false);
                 return project(aggregate);
             },
             cancellationToken).ConfigureAwait(false);
 
-        return result.Value;
+        if (!result.Replayed && eventPublisher is not null)
+        {
+            foreach (var auditEvent in pendingEvents)
+            {
+                eventPublisher.Publish(auditEvent);
+            }
+        }
+
+        return result;
     }
 
     private async Task<Domain.Sessions.Session> RequireSessionAsync(string sessionId, CancellationToken cancellationToken)
@@ -352,7 +432,7 @@ public sealed class SessionService(
         }
     }
 
-    private async Task AppendEventAsync(
+    private async Task<AuditEvent> AppendEventAsync(
         Domain.Sessions.Session session,
         string? runId,
         string type,
@@ -369,6 +449,7 @@ public sealed class SessionService(
             clock.UtcNow);
 
         await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
+        return auditEvent;
     }
 
     /// <summary>Terminal runs lose their disposable worktree; evidence stays in audit rows.</summary>
