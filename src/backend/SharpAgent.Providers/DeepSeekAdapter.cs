@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Domain.Profiles;
 using SharpAgent.Providers.Common;
@@ -26,4 +27,12 @@ public sealed class DeepSeekAdapter(ProviderValidationRunner runner) : IModelPro
             profile,
             secretReference,
             cancellationToken);
+
+    public IChatClient CreateChatClient(
+        ModelProfile profile,
+        ProviderSecretReference secretReference) =>
+        ChatClientFactory.Create(
+            Environment.GetEnvironmentVariable(BaseUrlVariable) ?? DefaultBaseUrl,
+            profile,
+            secretReference);
 }

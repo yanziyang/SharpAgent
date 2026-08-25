@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Application.Idempotency;
 using SharpAgent.Application.Profiles;
+using SharpAgent.Application.Runs;
 using SharpAgent.Application.Sessions;
 using SharpAgent.Application.Workspaces;
 
@@ -17,6 +18,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<WorkspaceService>();
         services.AddScoped<CatalogService>();
         services.AddScoped<ProfileValidationService>();
+        services.AddScoped<RunOrchestrator>();
 
         // IdempotencyService is constructed by consumers with their store; expose factory defaults.
         services.AddSingleton(sp => new IdempotencyOptions());

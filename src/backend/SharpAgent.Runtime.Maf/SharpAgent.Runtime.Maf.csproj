@@ -2,4 +2,13 @@
   <ItemGroup>
     <ProjectReference Include="..\SharpAgent.Application\SharpAgent.Application.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI" />
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" />
+  </ItemGroup>
+  <!-- MAAI001: compaction types are marked evaluation-only by the MAF package;
+       the runtime intentionally consumes them for bounded context management. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);MAAI001</NoWarn>
+  </PropertyGroup>
 </Project>

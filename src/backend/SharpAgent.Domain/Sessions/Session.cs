@@ -160,6 +160,19 @@ public sealed class Session
         ApplyTransition(SessionStatus.Cancelled, nowUtc);
     }
 
+    public void CompleteActiveRun(string finalSummary, DateTimeOffset nowUtc)
+    {
+        if (ActiveRunId is null)
+        {
+            throw new InvalidStateTransitionException(SessionStateMachine.EntityName, Status.ToString(), "completed (no active run)");
+        }
+
+        var run = _runs.Single(candidate => candidate.Id == ActiveRunId);
+        run.Complete(finalSummary, nowUtc);
+
+        ApplyTransition(SessionStatus.Completed, nowUtc);
+    }
+
     public void FailActiveRun(string reason, DateTimeOffset nowUtc)
     {
         if (ActiveRunId is null)

@@ -10,6 +10,18 @@ namespace SharpAgent.Application.Providers;
 /// </summary>
 public static class UsageCostEstimator
 {
+    /// <summary>Estimates the cost of one usage report from prices in USD per million tokens.</summary>
+    public static decimal? Estimate(
+        (decimal InputUsdPerMillion, decimal OutputUsdPerMillion) prices,
+        int inputTokens,
+        int outputTokens)
+    {
+        return Math.Round(
+            inputTokens / 1_000_000m * prices.InputUsdPerMillion
+            + outputTokens / 1_000_000m * prices.OutputUsdPerMillion,
+            6);
+    }
+
     public static decimal? Estimate(ModelProfile profile, NormalizedUsage usage)
     {
         ArgumentNullException.ThrowIfNull(profile);

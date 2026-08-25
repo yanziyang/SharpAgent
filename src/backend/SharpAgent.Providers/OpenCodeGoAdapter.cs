@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Application.Providers;
 using SharpAgent.Domain.Profiles;
@@ -37,4 +38,12 @@ public sealed class OpenCodeGoAdapter(ProviderValidationRunner runner) : IModelP
             secretReference,
             cancellationToken);
     }
+
+    public IChatClient CreateChatClient(
+        ModelProfile profile,
+        ProviderSecretReference secretReference) =>
+        ChatClientFactory.Create(
+            Environment.GetEnvironmentVariable(BaseUrlVariable) ?? DefaultBaseUrl,
+            profile,
+            secretReference);
 }

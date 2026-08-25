@@ -40,7 +40,7 @@ public sealed class ProfileValidationService(
 
         var secretReference = new ProviderSecretReference(
             string.IsNullOrWhiteSpace(profile.ConfigReference)
-                ? DefaultSecretVariable(profile.Provider)
+                ? ProfileSecretDefaults.VariableFor(profile.Provider)
                 : profile.ConfigReference);
 
         ProfileValidationResult result;
@@ -88,13 +88,4 @@ public sealed class ProfileValidationService(
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return ProfileValidationResult.Failed(new NormalizedProviderError(ProviderErrorCategory.InvalidRequest, safeMessage));
     }
-
-    private static string DefaultSecretVariable(ProviderKind provider) => provider switch
-    {
-        ProviderKind.OpenCodeGo => "SHARPAGENT_OPENCODE_GO_API_KEY",
-        ProviderKind.DeepSeek => "SHARPAGENT_DEEPSEEK_API_KEY",
-        ProviderKind.OpenRouter => "SHARPAGENT_OPENROUTER_API_KEY",
-        ProviderKind.Fake => "SHARPAGENT_FAKE_API_KEY",
-        _ => "SHARPAGENT_PROVIDER_API_KEY",
-    };
 }

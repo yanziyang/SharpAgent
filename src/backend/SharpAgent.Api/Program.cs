@@ -6,6 +6,7 @@ using SharpAgent.Api.ErrorHandling;
 using SharpAgent.Api.Startup;
 using SharpAgent.Application;
 using SharpAgent.Providers;
+using SharpAgent.Runtime.Maf;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,7 @@ builder.Services.ConfigureHttpJsonOptions(static options =>
 });
 builder.Services.AddApplicationServices();
 builder.Services.AddProviderAdapters();
+builder.Services.AddMafRuntime();
 builder.Services.AddSharpAgentServices(builder.Configuration);
 builder.Services.AddHostedService<PersistenceStartupService>();
 

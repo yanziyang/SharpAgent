@@ -18,6 +18,8 @@ public sealed class AdapterDispatchTests : IDisposable
 {
     private const string TestSecretVariable = "SHARPAGENT_TEST_PROVIDER_KEY";
 
+    private readonly string? _originalSecret;
+
     private readonly Dictionary<string, string?> _original = new()
     {
         [DeepSeekAdapter.BaseUrlVariable] = Environment.GetEnvironmentVariable(DeepSeekAdapter.BaseUrlVariable),
@@ -27,6 +29,7 @@ public sealed class AdapterDispatchTests : IDisposable
 
     public AdapterDispatchTests()
     {
+        _originalSecret = Environment.GetEnvironmentVariable(TestSecretVariable);
         Environment.SetEnvironmentVariable(TestSecretVariable, "test-key-value");
         foreach (var name in _original.Keys)
         {
@@ -36,6 +39,7 @@ public sealed class AdapterDispatchTests : IDisposable
 
     public void Dispose()
     {
+        Environment.SetEnvironmentVariable(TestSecretVariable, _originalSecret);
         foreach (var (name, value) in _original)
         {
             Environment.SetEnvironmentVariable(name, value);
@@ -118,6 +122,56 @@ public sealed class AdapterDispatchTests : IDisposable
         Assert.Equal(
             "https://api.opencode.go/v1/chat/completions",
             Assert.Single(handler.Requests).Request.RequestUri!.ToString());
+    }
+
+    [Fact]
+    public void Adapters_create_provider_neutral_chat_clients()
+    {
+        using var deepSeek = new DeepSeekAdapter(Runner(StubHttpMessageHandler.Sse(SuccessSse)))
+            .CreateChatClient(Profile(ProviderKind.DeepSeek, "DeepSeek Coder"), new ProviderSecretReference(TestSecretVariable));
+        using var openRouter = new OpenRouterAdapter(Runner(StubHttpMessageHandler.Sse(SuccessSse)))
+            .CreateChatClient(Profile(ProviderKind.OpenRouter, "Router Model"), new ProviderSecretReference(TestSecretVariable));
+        using var openCodeGo = new OpenCodeGoAdapter(Runner(StubHttpMessageHandler.Sse(SuccessSse)))
+            .CreateChatClient(Profile(ProviderKind.OpenCodeGo, "Ox Alpha Free"), new ProviderSecretReference(TestSecretVariable));
+
+        Assert.NotNull(deepSeek);
+        Assert.NotNull(openRouter);
+        Assert.NotNull(openCodeGo);
+    }
+
+    [Fact]
+    public void Chat_client_factory_rejects_unsupported_endpoints_and_missing_secrets()
+    {
+        var chatProfile = Profile(ProviderKind.DeepSeek, "DeepSeek Coder");
+
+        Assert.Throws<ArgumentException>(() =>
+            ChatClientFactory.Create(" ", chatProfile, new ProviderSecretReference(TestSecretVariable)));
+        Assert.Throws<ArgumentNullException>(() =>
+            ChatClientFactory.Create("https://fake.test/v1", null!, new ProviderSecretReference(TestSecretVariable)));
+        Assert.Throws<ArgumentNullException>(() =>
+            ChatClientFactory.Create("https://fake.test/v1", chatProfile, null!));
+
+        var unsupportedProfile = ModelProfile.Register(
+            ProviderKind.DeepSeek,
+            "Responses",
+            "model-id",
+            EndpointKind.Responses,
+            DateTimeOffset.UtcNow);
+        var unsupported = Assert.Throws<InvalidOperationException>(() =>
+            ChatClientFactory.Create("https://fake.test/v1", unsupportedProfile, new ProviderSecretReference(TestSecretVariable)));
+        Assert.Contains("not supported", unsupported.Message, StringComparison.Ordinal);
+
+        Environment.SetEnvironmentVariable(TestSecretVariable, null);
+        try
+        {
+            var missing = Assert.Throws<InvalidOperationException>(() =>
+                ChatClientFactory.Create("https://fake.test/v1", chatProfile, new ProviderSecretReference(TestSecretVariable)));
+            Assert.Contains("not configured", missing.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(TestSecretVariable, "test-key-value");
+        }
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Domain.Profiles;
 
@@ -11,13 +12,16 @@ namespace SharpAgent.TestKit.Fakes;
 public sealed class FakeProviderAdapter : IModelProviderAdapter
 {
     private readonly Func<ModelProfile, ProviderSecretReference, ProfileValidationResult> _handler;
+    private readonly Func<IChatClient>? _chatClientFactory;
 
     public FakeProviderAdapter(
         ProviderKind provider = ProviderKind.Fake,
-        Func<ModelProfile, ProviderSecretReference, ProfileValidationResult>? handler = null)
+        Func<ModelProfile, ProviderSecretReference, ProfileValidationResult>? handler = null,
+        Func<IChatClient>? chatClientFactory = null)
     {
         Provider = provider;
         _handler = handler ?? DefaultSuccess;
+        _chatClientFactory = chatClientFactory;
     }
 
     private static ProfileValidationResult DefaultSuccess(
@@ -41,6 +45,12 @@ public sealed class FakeProviderAdapter : IModelProviderAdapter
         Invocations.Add((profile, secretReference));
         return Task.FromResult(_handler(profile, secretReference));
     }
+
+    public IChatClient CreateChatClient(
+        ModelProfile profile,
+        ProviderSecretReference secretReference) =>
+        _chatClientFactory?.Invoke()
+        ?? throw new InvalidOperationException("No fake chat client is configured for this adapter.");
 }
 
 public sealed class FakeProviderAdapterRegistry(params IModelProviderAdapter[] adapters) : IProviderAdapterRegistry

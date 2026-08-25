@@ -49,7 +49,8 @@ public sealed class ProviderErrorMapperTests
     [Fact]
     public void Invalid_requests_carry_a_redacted_bounded_message()
     {
-        var error = ProviderErrorMapper.Map(400, """{"error":{"message":"model 'sk-secret-key-abcdef1234567890' not found"}}""");
+        const string fixtureKey = "sk-secret-key-abcdef1234567890"; // sharpagent:fixture-secret
+        var error = ProviderErrorMapper.Map(400, "{\"error\":{\"message\":\"model '" + fixtureKey + "' not found\"}}");
 
         Assert.Equal(ProviderErrorCategory.InvalidRequest, error.Category);
         Assert.Contains(SecretRedactor.Mask, error.SafeMessage, StringComparison.Ordinal);

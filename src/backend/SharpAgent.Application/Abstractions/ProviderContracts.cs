@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using SharpAgent.Domain.Profiles;
 
 namespace SharpAgent.Application.Abstractions;
@@ -112,6 +113,15 @@ public interface IModelProviderAdapter
         ModelProfile profile,
         ProviderSecretReference secretReference,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Builds a provider-neutral chat client for the given profile. Secrets are
+    /// resolved server-side only; the client is consumed by the agent runtime
+    /// (design section 7.1, plan phase 4).
+    /// </summary>
+    IChatClient CreateChatClient(
+        ModelProfile profile,
+        ProviderSecretReference secretReference);
 }
 
 /// <summary>Resolves the adapter for a provider kind without leaking provider assemblies.</summary>
