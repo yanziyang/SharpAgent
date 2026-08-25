@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SharpAgent.Application.Abstractions;
+using SharpAgent.Application.Dashboard;
 using SharpAgent.Application.Idempotency;
 using SharpAgent.Application.Profiles;
 using SharpAgent.Application.Runs;
@@ -17,6 +18,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<SessionService>();
         services.AddScoped<WorkspaceService>();
         services.AddScoped<CatalogService>();
+        services.AddScoped<DashboardQueryService>();
         services.AddScoped<ProfileValidationService>();
         services.AddScoped<RunOrchestrator>();
         services.AddSingleton<ISessionEventPublisher, InMemorySessionEventPublisher>();

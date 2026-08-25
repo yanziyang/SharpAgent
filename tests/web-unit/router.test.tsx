@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it } from 'vitest'
-import { createAppRoutes } from '@/app/router'
+import { createAppRouter, createAppRoutes } from '@/app/router'
 import { ThemeProvider } from '@/shared/theme/theme-provider'
 
 function renderRoute(path: string): void {
@@ -16,7 +16,8 @@ function renderRoute(path: string): void {
 
 describe('application routes', () => {
   it.each([
-    ['/sessions/new', 'New task'],
+    ['/statistics', 'Statistics'],
+    ['/sessions/new', 'New session'],
     ['/sessions/archive', 'Archived sessions'],
     ['/sessions/ses_123', 'Session workspace'],
     ['/sessions/ses_123/changes', 'Changes'],
@@ -25,7 +26,7 @@ describe('application routes', () => {
     ['/settings/policy', 'Policy and limits'],
     ['/settings/runtime', 'Runtime health'],
     ['/settings/appearance', 'Appearance'],
-  ])('renders the placeholder for required route %s', (path, title) => {
+  ])('renders the required route %s', (path, title) => {
     renderRoute(path)
 
     expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument()
@@ -34,7 +35,7 @@ describe('application routes', () => {
   it('renders primary navigation for every planned area', async () => {
     renderRoute('/')
 
-    for (const label of ['Dashboard', 'New task', 'Archive', 'Workspaces', 'Models', 'Policy', 'Runtime', 'Appearance']) {
+    for (const label of ['Dashboard', 'Statistics', 'New session', 'Archive', 'Workspaces', 'Models', 'Policy', 'Runtime', 'Appearance']) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument()
     }
   })
@@ -52,6 +53,10 @@ describe('application routes', () => {
   it('shows the trusted-local deployment notice', () => {
     renderRoute('/')
 
-    expect(screen.getByText(/no authentication by design/i)).toBeInTheDocument()
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(/no authentication by design/i)
+  })
+
+  it('constructs the browser router from the same route table', () => {
+    expect(createAppRouter()).toBeDefined()
   })
 })

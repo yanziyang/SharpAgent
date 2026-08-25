@@ -38,6 +38,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         // Application ports.
         services.AddScoped<ISessionRepository, EfSessionRepository>();
+        services.AddScoped<IDashboardQueryRepository, EfDashboardQueryRepository>();
         services.AddScoped<IWorkspaceRepository, EfWorkspaceRepository>();
         services.AddScoped<IModelProfileRepository, EfModelProfileRepository>();
         services.AddScoped<IPolicyProfileRepository, EfPolicyProfileRepository>();

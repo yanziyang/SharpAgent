@@ -22,6 +22,10 @@ describe('ThemeProvider', () => {
     document.documentElement.dataset.theme = ''
   })
 
+  it('rejects theme consumers outside the provider boundary', () => {
+    expect(() => render(<ThemeProbe />)).toThrow(/useTheme must be used inside/i)
+  })
+
   it('defaults to studio and applies the data-theme attribute', () => {
     render(
       <ThemeProvider>

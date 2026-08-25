@@ -1,19 +1,18 @@
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
-import { PlaceholderPage } from './placeholder-page'
+import { StatisticsPage } from '@/features/dashboard/statistics-page'
+import { ArchivePage } from '@/features/sessions/archive-page'
+import { ChangesPage } from '@/features/sessions/changes-page'
+import { NewSessionPage } from '@/features/sessions/new-session-page'
+import { SessionWorkspacePage } from '@/features/sessions/session-workspace-page'
+import {
+  AppearanceSettingsPage,
+  ModelsSettingsPage,
+  PolicySettingsPage,
+  RuntimeSettingsPage,
+  WorkspacesSettingsPage,
+} from '@/features/settings/settings-pages'
 import { RootLayout } from './root-layout'
-
-const PENDING_ROUTES = [
-  { path: '/sessions/new', title: 'New task' },
-  { path: '/sessions/archive', title: 'Archived sessions' },
-  { path: '/sessions/:sessionId', title: 'Session workspace' },
-  { path: '/sessions/:sessionId/changes', title: 'Changes' },
-  { path: '/settings/workspaces', title: 'Workspace settings' },
-  { path: '/settings/models', title: 'Model profiles' },
-  { path: '/settings/policy', title: 'Policy and limits' },
-  { path: '/settings/runtime', title: 'Runtime health' },
-  { path: '/settings/appearance', title: 'Appearance' },
-] as const
 
 /** Route objects shared by the browser router and tests (memory router). */
 export function createAppRoutes(): RouteObject[] {
@@ -22,10 +21,16 @@ export function createAppRoutes(): RouteObject[] {
       element: <RootLayout />,
       children: [
         { path: '/', element: <DashboardPage /> },
-        ...PENDING_ROUTES.map((route) => ({
-          path: route.path,
-          element: <PlaceholderPage title={route.title} />,
-        })),
+        { path: '/statistics', element: <StatisticsPage /> },
+        { path: '/sessions/new', element: <NewSessionPage /> },
+        { path: '/sessions/archive', element: <ArchivePage /> },
+        { path: '/sessions/:sessionId', element: <SessionWorkspacePage /> },
+        { path: '/sessions/:sessionId/changes', element: <ChangesPage /> },
+        { path: '/settings/workspaces', element: <WorkspacesSettingsPage /> },
+        { path: '/settings/models', element: <ModelsSettingsPage /> },
+        { path: '/settings/policy', element: <PolicySettingsPage /> },
+        { path: '/settings/runtime', element: <RuntimeSettingsPage /> },
+        { path: '/settings/appearance', element: <AppearanceSettingsPage /> },
       ],
     },
   ]
