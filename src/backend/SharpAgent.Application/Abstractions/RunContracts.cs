@@ -80,7 +80,10 @@ public sealed record RunContext(
     RunLimits Limits,
     IReadOnlyList<string> RetainedTodos,
     string? CompactedHistorySummary,
-    IReadOnlyList<string> DecisionsSummary);
+    IReadOnlyList<string> DecisionsSummary,
+    string CorrelationId = "",
+    string Provider = "",
+    string ModelProfileId = "");
 
 /// <summary>
 /// Deterministic runtime boundary (plan section 11). The MAF implementation can be

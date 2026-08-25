@@ -74,6 +74,7 @@ export function parseSseBlock(block: string): ParsedSseBlock | null {
       occurredAtUtc: typeof parsed.occurredAtUtc === 'string' ? parsed.occurredAtUtc : new Date().toISOString(),
       sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : null,
       runId: typeof parsed.runId === 'string' ? parsed.runId : null,
+      correlationId: typeof parsed.correlationId === 'string' ? parsed.correlationId : null,
       eventId: typeof parsed.eventId === 'string' ? parsed.eventId : id || null,
       payload,
     },

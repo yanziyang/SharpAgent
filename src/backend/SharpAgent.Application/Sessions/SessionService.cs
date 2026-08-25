@@ -3,6 +3,7 @@ using SharpAgent.Application.Abstractions;
 using SharpAgent.Application.Common;
 using SharpAgent.Application.Idempotency;
 using SharpAgent.Domain.Auditing;
+using SharpAgent.Domain.Common;
 using SharpAgent.Domain.Sessions;
 using SharpAgent.Domain.Todos;
 
@@ -24,7 +25,8 @@ public sealed class SessionService(
     IIdempotencyStore idempotencyStore,
     IUnitOfWork unitOfWork,
     IClock clock,
-    ISessionEventPublisher? eventPublisher = null)
+    ISessionEventPublisher? eventPublisher = null,
+    ICorrelationContext? correlationContext = null)
 {
     public const int MaxTaskLength = 8_000;
 
@@ -278,7 +280,8 @@ public sealed class SessionService(
             auditEvent.PayloadJson,
             auditEvent.SessionId,
             auditEvent.RunId,
-            auditEvent.Id)).ToList();
+            auditEvent.Id,
+            auditEvent.CorrelationId)).ToList();
 
         var expected = afterSequence + 1;
         var hasGap = afterSequence > session.LastEventSequence
@@ -446,7 +449,8 @@ public sealed class SessionService(
             sequence,
             type,
             JsonSerializer.Serialize(payload, PayloadOptions),
-            clock.UtcNow);
+            clock.UtcNow,
+            CorrelationFor(session, runId));
 
         await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
         return auditEvent;
@@ -510,7 +514,13 @@ public sealed class SessionService(
         run.StartedAtUtc,
         run.EndedAtUtc,
         run.StopReason,
-        run.ResumeSourceRunId);
+        run.ResumeSourceRunId,
+        run.CorrelationId);
+
+    private string CorrelationFor(Domain.Sessions.Session session, string? runId) =>
+        session.Runs.FirstOrDefault(run => string.Equals(run.Id, runId, StringComparison.Ordinal))?.CorrelationId
+        ?? correlationContext?.CurrentId
+        ?? DomainId.NewCorrelationId();
 }
 
 public sealed record StartRunResult(SessionDto Session, RunDto Run);

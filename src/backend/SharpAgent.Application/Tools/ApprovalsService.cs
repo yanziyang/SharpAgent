@@ -5,6 +5,7 @@ using SharpAgent.Application.Idempotency;
 using SharpAgent.Domain.Approvals;
 using SharpAgent.Domain.Sessions;
 using SharpAgent.Domain.Auditing;
+using SharpAgent.Domain.Common;
 using SharpAgent.Domain.Tools;
 
 namespace SharpAgent.Application.Tools;
@@ -179,7 +180,9 @@ public sealed class ApprovalsService(
             sequence,
             type,
             JsonSerializer.Serialize(payload, PayloadOptions),
-            clock.UtcNow);
+            clock.UtcNow,
+            session.Runs.FirstOrDefault(run => string.Equals(run.Id, runId, StringComparison.Ordinal))?.CorrelationId
+                ?? DomainId.NewCorrelationId());
 
         await events.AddAsync(auditEvent, ct).ConfigureAwait(false);
         unitOfWork.RegisterAfterCommit(() => eventPublisher?.Publish(auditEvent));

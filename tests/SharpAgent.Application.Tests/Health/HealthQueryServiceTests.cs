@@ -70,6 +70,22 @@ public sealed class HealthQueryServiceTests
     }
 
     [Fact]
+    public async Task Probe_details_are_redacted_and_bounded()
+    {
+        const string secret = "sk-123456789012";
+        var service = new HealthQueryService(
+        [
+            new FakeHealthProbe("provider", HealthStatus.Degraded, secret + new string('x', 400)),
+        ]);
+
+        var check = Assert.Single((await service.ProbeAsync()).Checks);
+
+        Assert.DoesNotContain(secret, check.Detail, StringComparison.Ordinal);
+        Assert.Contains("[redacted]", check.Detail, StringComparison.Ordinal);
+        Assert.True(check.Detail!.Length <= 240);
+    }
+
+    [Fact]
     public async Task Continues_remaining_probes_after_a_failure()
     {
         var after = new FakeHealthProbe("z-after");

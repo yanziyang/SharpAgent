@@ -3,6 +3,7 @@ using SharpAgent.Application.Abstractions;
 using SharpAgent.Domain.Auditing;
 using SharpAgent.Domain.Common;
 using SharpAgent.Domain.Sessions;
+using SharpAgent.Infrastructure.Retention;
 
 namespace SharpAgent.Infrastructure.Persistence;
 
@@ -10,7 +11,10 @@ namespace SharpAgent.Infrastructure.Persistence;
 /// Startup persistence tasks: apply migrations, sweep abandoned runs to interrupted
 /// (design section 5.2), and prune expired idempotency keys.
 /// </summary>
-public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> contextFactory, IGitWorktreeService worktrees)
+public sealed class DbInitializer(
+    IDbContextFactory<SharpAgentDbContext> contextFactory,
+    IGitWorktreeService worktrees,
+    RetentionCleanupService? retentionCleanup = null)
 {
     public const string RestartedReason = "Service restarted while the run was active.";
 
@@ -28,6 +32,11 @@ public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> context
             .Where(record => record.ExpiresAtUtc <= nowUtc)
             .ExecuteDeleteAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        if (retentionCleanup is not null)
+        {
+            await retentionCleanup.CleanupAsync(nowUtc, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Any run left active by a previous process becomes interrupted and resumable.</summary>
@@ -97,7 +106,8 @@ public sealed class DbInitializer(IDbContextFactory<SharpAgentDbContext> context
                 AuditEventTypes.Status,
                 System.Text.Json.JsonSerializer.Serialize(
                     new { runId = abandonedRunId, status = "interrupted", reason = RestartedReason }),
-                now);
+                now,
+                abandonedRun?.CorrelationId);
             await context.AuditEvents.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
         }
 

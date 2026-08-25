@@ -27,6 +27,18 @@ public static class ApiEndpointExtensions
                     .GetAsync(periodDays ?? SharpAgent.Application.Dashboard.DashboardQueryService.DefaultPeriodDays, cancellationToken)
                     .ConfigureAwait(false)));
 
+        api.MapGet(
+            "/metrics",
+            async (
+                int? periodDays,
+                SharpAgent.Application.Observability.ObservabilityQueryService metrics,
+                CancellationToken cancellationToken) =>
+                Results.Ok(await metrics
+                    .GetAsync(
+                        periodDays ?? SharpAgent.Application.Observability.ObservabilityQueryService.DefaultPeriodDays,
+                        cancellationToken)
+                    .ConfigureAwait(false)));
+
         endpoints
             .MapSessionEndpoints()
             .MapWorkspaceAndCatalogEndpoints()

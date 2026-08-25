@@ -39,6 +39,7 @@ internal sealed class AuditEventConfiguration : IEntityTypeConfiguration<AuditEv
         builder.Property(static auditEvent => auditEvent.Id).HasMaxLength(80);
         builder.Property(static auditEvent => auditEvent.SessionId).HasMaxLength(64);
         builder.Property(static auditEvent => auditEvent.RunId).HasMaxLength(64);
+        builder.Property(static auditEvent => auditEvent.CorrelationId).HasMaxLength(64);
         builder.Property(static auditEvent => auditEvent.Type).HasMaxLength(48);
         builder.Property(static auditEvent => auditEvent.PayloadJson).HasMaxLength(32_000);
 
@@ -82,6 +83,7 @@ internal sealed class ToolExecutionConfiguration : IEntityTypeConfiguration<Tool
         builder.HasKey(static execution => execution.Id);
         builder.Property(static execution => execution.Id).HasMaxLength(64);
         builder.Property(static execution => execution.RunId).HasMaxLength(64);
+        builder.Property(static execution => execution.CorrelationId).HasMaxLength(64);
         builder.Property(static execution => execution.ToolName).HasMaxLength(64);
         builder.Property(static execution => execution.RequestSummary).HasMaxLength(4_000);
         builder.Property(static execution => execution.ApprovalId).HasMaxLength(64);

@@ -4,6 +4,7 @@ using SharpAgent.Application.Common;
 using SharpAgent.Application.Security;
 using SharpAgent.Domain.Approvals;
 using SharpAgent.Domain.Auditing;
+using SharpAgent.Domain.Common;
 using SharpAgent.Domain.Sessions;
 using SharpAgent.Domain.Workspaces;
 using SharpAgent.Domain.Tools;
@@ -87,10 +88,38 @@ public sealed class WorkspaceToolService(
             throw ValidationException.ForField("commandName", "Command is not in the approved catalog.");
         }
 
-        var boundary = await ResolveBoundaryAsync(workspace, run, proposal.Action, cancellationToken).ConfigureAwait(false);
+        BoundaryRoots boundary;
+        IReadOnlyList<ResolvedTarget> targets;
+        string? patchContentHash;
+        try
+        {
+            boundary = await ResolveBoundaryAsync(workspace, run, proposal.Action, cancellationToken).ConfigureAwait(false);
 
-        // 2) Canonicalize every proposed target BEFORE any executor is reachable (FR-002).
-        var (targets, patchContentHash) = await ResolveTargetsAsync(boundary, proposal, cancellationToken).ConfigureAwait(false);
+            // 2) Canonicalize every proposed target BEFORE any executor is reachable (FR-002).
+            (targets, patchContentHash) = await ResolveTargetsAsync(boundary, proposal, cancellationToken).ConfigureAwait(false);
+        }
+        catch (WorkspaceEscapeException)
+        {
+            await EmitEventAsync(
+                    session,
+                    run.Id,
+                    AuditEventTypes.WorkspaceDenied,
+                    new { reason = "workspace_boundary" },
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+            throw;
+        }
+        catch (ConflictException exception) when (exception.Code == "workspace_unavailable")
+        {
+            await EmitEventAsync(
+                    session,
+                    run.Id,
+                    AuditEventTypes.WorkspaceDenied,
+                    new { reason = "workspace_unavailable" },
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+            throw;
+        }
 
         if (decision.Outcome == Domain.Tools.PolicyOutcome.Allow)
         {
@@ -200,7 +229,8 @@ public sealed class WorkspaceToolService(
             proposal.Action.ToString(),
             Domain.Tools.PolicyOutcome.Allow,
             approvalId,
-            clock.UtcNow);
+            clock.UtcNow,
+            run.CorrelationId);
 
         try
         {
@@ -477,7 +507,9 @@ public sealed class WorkspaceToolService(
             sequence,
             type,
             JsonSerializer.Serialize(payload, PayloadOptions),
-            clock.UtcNow);
+            clock.UtcNow,
+            session.Runs.FirstOrDefault(run => string.Equals(run.Id, runId, StringComparison.Ordinal))?.CorrelationId
+                ?? DomainId.NewCorrelationId());
 
         await events.AddAsync(auditEvent, ct).ConfigureAwait(false);
         unitOfWork.RegisterAfterCommit(() => eventPublisher?.Publish(auditEvent));

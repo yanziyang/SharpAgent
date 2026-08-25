@@ -6,6 +6,7 @@ export interface SessionEvent {
   occurredAtUtc: string
   sessionId: string | null
   runId: string | null
+  correlationId?: string | null
   eventId: string | null
   payload: unknown
 }

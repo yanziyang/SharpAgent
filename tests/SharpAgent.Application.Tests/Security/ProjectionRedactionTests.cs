@@ -65,7 +65,7 @@ public sealed class ProjectionRedactionTests
 
     private static readonly string[] RunPropertyNames =
     [
-        "endedAtUtc", "id", "resumeSourceRunId", "sequence", "startedAtUtc", "status", "stopReason",
+        "correlationId", "endedAtUtc", "id", "resumeSourceRunId", "sequence", "startedAtUtc", "status", "stopReason",
     ];
 
     [Fact]

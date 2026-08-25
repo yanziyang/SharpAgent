@@ -38,6 +38,7 @@ export interface RunSummary {
   endedAtUtc: string | null
   stopReason: string | null
   resumeSourceRunId: string | null
+  correlationId?: string
 }
 
 export interface Session {

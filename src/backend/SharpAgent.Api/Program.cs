@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using SharpAgent.Api.Composition;
 using SharpAgent.Api.Endpoints;
 using SharpAgent.Api.ErrorHandling;
+using SharpAgent.Api.Middleware;
 using SharpAgent.Api.Startup;
 using SharpAgent.Api.Runtime;
 using SharpAgent.Application;
@@ -28,6 +29,8 @@ builder.Services.AddRunCoordinator();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<RequestObservabilityMiddleware>();
 
 app.MapApiEndpoints();
 

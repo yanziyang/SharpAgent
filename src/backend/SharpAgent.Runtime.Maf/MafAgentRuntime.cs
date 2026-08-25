@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
@@ -14,10 +15,28 @@ namespace SharpAgent.Runtime.Maf;
 /// construction, facade tools, todo behavior, compaction, cancellation and the
 /// canonical event translation. Provider/MAF types never escape this adapter.
 /// </summary>
-public sealed class MafAgentRuntime(IClock clock) : IAgentRuntime
+public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logger = null) : IAgentRuntime
 {
     public const int MaxAssistantSummaryLength = 2_000;
     public const int MaxOutputTokens = 2_048;
+
+    private static readonly Action<ILogger, Exception?> LogProviderCallStarted =
+        LoggerMessage.Define(
+            LogLevel.Debug,
+            new EventId(20, nameof(LogProviderCallStarted)),
+            "provider_call_started");
+
+    private static readonly Action<ILogger, Exception?> LogProviderCallCompleted =
+        LoggerMessage.Define(
+            LogLevel.Debug,
+            new EventId(21, nameof(LogProviderCallCompleted)),
+            "provider_call_completed");
+
+    private static readonly Action<ILogger, string, Exception?> LogProviderCallFailed =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(22, nameof(LogProviderCallFailed)),
+            "provider_call_failed exceptionType={ExceptionType}");
 
     private sealed record ParsedTodo(string Text, bool Done);
 
@@ -26,6 +45,15 @@ public sealed class MafAgentRuntime(IClock clock) : IAgentRuntime
         IRunEventSink sink,
         CancellationToken cancellationToken)
     {
+        using var logScope = logger?.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["correlationId"] = context.CorrelationId,
+            ["sessionId"] = context.SessionId,
+            ["runId"] = context.RunId,
+            ["provider"] = context.Provider,
+            ["modelProfileId"] = context.ModelProfileId,
+        });
+
         using var durationCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         durationCts.CancelAfter(context.Limits.MaxDuration);
         var runCt = durationCts.Token;
@@ -62,6 +90,11 @@ public sealed class MafAgentRuntime(IClock clock) : IAgentRuntime
 
         try
         {
+            if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+            {
+                LogProviderCallStarted(logger, null);
+            }
+
             await foreach (var update in agent.RunStreamingAsync([opening], session, new ChatClientAgentRunOptions(), runCt).ConfigureAwait(false))
             {
                 var action = await processor.ProcessAsync(update, assistant).ConfigureAwait(false);
@@ -91,6 +124,11 @@ public sealed class MafAgentRuntime(IClock clock) : IAgentRuntime
                         clock.UtcNow),
                     cancellationToken).ConfigureAwait(false);
             }
+
+            if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+            {
+                LogProviderCallCompleted(logger, null);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -105,6 +143,11 @@ public sealed class MafAgentRuntime(IClock clock) : IAgentRuntime
         }
         catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException)
         {
+            if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+            {
+                LogProviderCallFailed(logger, exception.GetType().Name, null);
+            }
+
             return new RunOutcome(
                 RunStopReason.ProviderError,
                 SafeErrorMessage(exception),

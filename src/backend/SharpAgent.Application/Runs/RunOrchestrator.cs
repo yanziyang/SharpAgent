@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Application.Common;
 using SharpAgent.Application.Providers;
@@ -31,9 +32,22 @@ public sealed class RunOrchestrator(
     IClock clock,
     IAgentRuntime runtime,
     WorkspaceToolService toolService,
-    ISessionEventPublisher? eventPublisher = null)
+    ISessionEventPublisher? eventPublisher = null,
+    ILogger<RunOrchestrator>? logger = null)
 {
     private static readonly JsonSerializerOptions PayloadOptions = new(JsonSerializerDefaults.Web);
+
+    private static readonly Action<ILogger, Exception?> LogRunStarted =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(10, nameof(LogRunStarted)),
+            "run_started");
+
+    private static readonly Action<ILogger, RunStopReason, int, Exception?> LogRunCompleted =
+        LoggerMessage.Define<RunStopReason, int>(
+            LogLevel.Information,
+            new EventId(11, nameof(LogRunCompleted)),
+            "run_completed stopReason={StopReason} toolCallCount={ToolCallCount}");
 
     /// <summary>Maximum safe summary length kept for resume; everything else is truncated.</summary>
     public const int MaxSummaryCharacters = 4_000;
@@ -146,9 +160,33 @@ public sealed class RunOrchestrator(
                 OutputUsdPerMillionTokens: profile.GetCapabilities().EstimatedUsdPerMillionOutputTokens),
             retainedTodos,
             historySummary,
-            await LoadDecisionsSummaryAsync(session.Id, cancellationToken).ConfigureAwait(false));
+            await LoadDecisionsSummaryAsync(session.Id, cancellationToken).ConfigureAwait(false),
+            run.CorrelationId,
+            profile.Provider.ToString(),
+            profile.Id);
 
-        var sink = new PersistingEventSink(session, run.Id, events, todos, unitOfWork, clock, eventPublisher);
+        using var logScope = logger?.BeginScope(new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["correlationId"] = run.CorrelationId,
+            ["sessionId"] = session.Id,
+            ["runId"] = run.Id,
+            ["provider"] = profile.Provider.ToString(),
+            ["modelProfileId"] = profile.Id,
+        });
+        if (logger is not null)
+        {
+            LogRunStarted(logger, null);
+        }
+
+        var sink = new PersistingEventSink(
+            session,
+            run.Id,
+            run.CorrelationId,
+            events,
+            todos,
+            unitOfWork,
+            clock,
+            eventPublisher);
 
         RunOutcome outcome;
         try
@@ -226,6 +264,11 @@ public sealed class RunOrchestrator(
             }
         }
 
+        if (logger is not null)
+        {
+            LogRunCompleted(logger, outcome.StopReason, outcome.ToolCallCount, null);
+        }
+
         return outcome;
     }
 
@@ -293,7 +336,8 @@ public sealed class RunOrchestrator(
             sequence,
             type,
             JsonSerializer.Serialize(payload, PayloadOptions),
-            clock.UtcNow);
+            clock.UtcNow,
+            session.Runs.Single(run => run.Id == runId).CorrelationId);
 
         await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
         return auditEvent;
@@ -338,6 +382,7 @@ public sealed class RunOrchestrator(
     private sealed class PersistingEventSink(
         Domain.Sessions.Session session,
         string runId,
+        string correlationId,
         IAuditEventRepository events,
         ITodoRepository todos,
         IUnitOfWork unitOfWork,
@@ -360,7 +405,8 @@ public sealed class RunOrchestrator(
                 sequence,
                 type,
                 JsonSerializer.Serialize(payload, PayloadOptions),
-                runEvent.OccurredAtUtc);
+                runEvent.OccurredAtUtc,
+                correlationId);
 
             await events.AddAsync(auditEvent, cancellationToken).ConfigureAwait(false);
             await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

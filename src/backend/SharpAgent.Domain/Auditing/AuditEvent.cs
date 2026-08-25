@@ -17,6 +17,7 @@ public static class AuditEventTypes
     public const string ToolStarted = "tool_started";
     public const string ToolOutput = "tool_output";
     public const string ToolCompleted = "tool_completed";
+    public const string WorkspaceDenied = "workspace_denied";
     public const string ChangeDetected = "change_detected";
     public const string ProviderFallback = "provider_fallback";
     public const string UsageUpdated = "usage_updated";
@@ -30,7 +31,7 @@ public static class AuditEventTypes
         return type is SessionCreated or RunStarted or Status or AssistantSummary
             or TodoCreated or TodoUpdated or ContextCompacted or ToolProposed
             or PolicyDecision or ApprovalRequested or ApprovalResolved or ToolStarted
-            or ToolOutput or ToolCompleted or ChangeDetected or ProviderFallback
+            or ToolOutput or ToolCompleted or WorkspaceDenied or ChangeDetected or ProviderFallback
             or UsageUpdated or RunCompleted or RunFailed or RunCancelled;
     }
 }
@@ -46,6 +47,9 @@ public sealed class AuditEvent
     public string SessionId { get; init; } = string.Empty;
 
     public string? RunId { get; init; }
+
+    /// <summary>Durable diagnostic correlation carried by every event.</summary>
+    public string CorrelationId { get; init; } = DomainId.NewCorrelationId();
 
     /// <summary>One-based, gapless per session.</summary>
     public long Sequence { get; init; }
@@ -67,7 +71,8 @@ public sealed class AuditEvent
         long sequence,
         string type,
         string payloadJson,
-        DateTimeOffset occurredAtUtc)
+        DateTimeOffset occurredAtUtc,
+        string? correlationId = null)
     {
         if (string.IsNullOrWhiteSpace(type))
         {
@@ -89,6 +94,9 @@ public sealed class AuditEvent
             Id = DomainId.NewEventId(sequence),
             SessionId = sessionId,
             RunId = runId,
+            CorrelationId = string.IsNullOrWhiteSpace(correlationId)
+                ? DomainId.NewCorrelationId()
+                : correlationId,
             Sequence = sequence,
             Type = type,
             PayloadJson = payloadJson,

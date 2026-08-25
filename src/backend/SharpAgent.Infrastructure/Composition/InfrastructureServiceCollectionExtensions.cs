@@ -6,6 +6,7 @@ using SharpAgent.Application.Health;
 using SharpAgent.Application.Tools;
 using SharpAgent.Infrastructure.Health;
 using SharpAgent.Infrastructure.Persistence;
+using SharpAgent.Infrastructure.Retention;
 using SharpAgent.Infrastructure.Timing;
 using SharpAgent.Infrastructure.Workspaces;
 
@@ -39,6 +40,7 @@ public static class InfrastructureServiceCollectionExtensions
         // Application ports.
         services.AddScoped<ISessionRepository, EfSessionRepository>();
         services.AddScoped<IDashboardQueryRepository, EfDashboardQueryRepository>();
+        services.AddScoped<IObservabilityQueryRepository, EfObservabilityQueryRepository>();
         services.AddScoped<IWorkspaceRepository, EfWorkspaceRepository>();
         services.AddScoped<IModelProfileRepository, EfModelProfileRepository>();
         services.AddScoped<IPolicyProfileRepository, EfPolicyProfileRepository>();
@@ -65,18 +67,23 @@ public static class InfrastructureServiceCollectionExtensions
         // Singletons/edge services.
         services.AddSingleton<IClock>(SystemClock.Instance);
         services.AddSingleton<IWorkspaceRootValidator, FileSystemRootValidator>();
+        services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
+        services.AddSingleton<RetentionCleanupService>();
         services.AddSingleton<DbInitializer>();
 
-        // Health probes: real SQLite readiness; other dependencies arrive in later phases.
+        // Health probes expose only bounded readiness facts; no roots, endpoints,
+        // provider configuration references, or secrets are returned.
         services.AddSingleton<IHealthProbe>(new ApplicationHostProbe());
         services.AddSingleton<IHealthProbe>(serviceProvider =>
             new SqliteDatabaseProbe(serviceProvider.GetRequiredService<IDbContextFactory<SharpAgentDbContext>>()));
-        services.AddSingleton<IHealthProbe>(new PendingDependencyProbe(
-            "workspace-executor",
-            "Workspace execution is not configured yet."));
-        services.AddSingleton<IHealthProbe>(new PendingDependencyProbe(
-            "providers",
-            "No provider adapter is registered yet."));
+        services.AddSingleton<IHealthProbe>(serviceProvider =>
+            new WorkspaceExecutorProbe(
+                serviceProvider.GetRequiredService<IWorkspaceRootValidator>(),
+                serviceProvider.GetRequiredService<IProcessRunner>()));
+        services.AddSingleton<IHealthProbe>(serviceProvider =>
+            new ProviderReadinessProbe(
+                serviceProvider.GetRequiredService<IDbContextFactory<SharpAgentDbContext>>(),
+                serviceProvider.GetRequiredService<IProviderAdapterRegistry>()));
 
         return services;
     }

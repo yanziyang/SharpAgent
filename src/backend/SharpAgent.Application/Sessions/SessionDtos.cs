@@ -24,7 +24,8 @@ public sealed record RunDto(
     DateTimeOffset StartedAtUtc,
     DateTimeOffset? EndedAtUtc,
     string? StopReason,
-    string? ResumeSourceRunId);
+    string? ResumeSourceRunId,
+    string CorrelationId = "");
 
 public sealed record SessionSummaryDto(
     string Id,
@@ -45,7 +46,8 @@ public sealed record AuditEventDto(
     string PayloadJson,
     string? SessionId = null,
     string? RunId = null,
-    string? EventId = null);
+    string? EventId = null,
+    string? CorrelationId = null);
 
 public sealed record SessionEventReplay(
     IReadOnlyList<AuditEventDto> Events,

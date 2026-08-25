@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SharpAgent.Application.Abstractions;
 using SharpAgent.Application.Common;
+using SharpAgent.Application.Tools;
 using SharpAgent.Domain.Common;
 
 namespace SharpAgent.Api.ErrorHandling;
@@ -13,11 +15,11 @@ namespace SharpAgent.Api.ErrorHandling;
 public sealed partial class SharpAgentProblemHandler(ILogger<SharpAgentProblemHandler> logger)
     : IExceptionHandler
 {
-    private static readonly Action<ILogger, string, int, string, Exception?> LogMapped =
-        LoggerMessage.Define<string, int, string>(
+    private static readonly Action<ILogger, string, int, string, string, Exception?> LogMapped =
+        LoggerMessage.Define<string, int, string, string>(
             LogLevel.Information,
             new EventId(1, nameof(SharpAgentProblemHandler)),
-            "Mapped {ExceptionType} to HTTP {Status} with code {ProblemCode}");
+            "Mapped {ExceptionType} to HTTP {Status} with code {ProblemCode} correlationId={CorrelationId}");
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -31,7 +33,13 @@ public sealed partial class SharpAgentProblemHandler(ILogger<SharpAgentProblemHa
             return false; // Unhandled: let the default handler produce a safe 500.
         }
 
-        LogMapped(logger, exception.GetType().Name, status.Value, code, null);
+        var safeCorrelationId = httpContext.Items.TryGetValue(CorrelationIds.HeaderName, out var correlationId)
+            && correlationId is string requestCorrelationId
+            ? requestCorrelationId
+            : CorrelationIds.Normalize(null);
+
+        LogMapped(logger, exception.GetType().Name, status.Value, code, safeCorrelationId, null);
+        httpContext.Response.Headers[CorrelationIds.HeaderName] = safeCorrelationId;
 
         var problem = new ProblemDetails
         {
@@ -40,6 +48,7 @@ public sealed partial class SharpAgentProblemHandler(ILogger<SharpAgentProblemHa
             Type = $"https://sharpagent.local/problems/{code}",
         };
         problem.Extensions["code"] = code;
+        problem.Extensions["correlationId"] = safeCorrelationId;
 
         if (errors is { Count: > 0 })
         {
@@ -76,6 +85,12 @@ public sealed partial class SharpAgentProblemHandler(ILogger<SharpAgentProblemHa
                 StatusCodes.Status409Conflict,
                 invalidTransition.Message,
                 "invalid_transition",
+                null),
+
+            WorkspaceEscapeException workspaceEscape => (
+                StatusCodes.Status409Conflict,
+                workspaceEscape.Message,
+                WorkspaceEscapeException.Code,
                 null),
 
             DbUpdateConcurrencyException concurrency => (

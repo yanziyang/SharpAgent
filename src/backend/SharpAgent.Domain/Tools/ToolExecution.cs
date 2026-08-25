@@ -25,6 +25,9 @@ public sealed class ToolExecution
 
     public string RunId { get; init; } = string.Empty;
 
+    /// <summary>Durable run correlation for tool diagnostics.</summary>
+    public string CorrelationId { get; init; } = DomainId.NewCorrelationId();
+
     public string ToolName { get; init; } = string.Empty;
 
     /// <summary>Bounded, sanitized request summary.</summary>
@@ -61,7 +64,8 @@ public sealed class ToolExecution
         string toolName,
         PolicyOutcome outcome,
         string? approvalId,
-        DateTimeOffset startedAtUtc)
+        DateTimeOffset startedAtUtc,
+        string? correlationId = null)
     {
         if (string.IsNullOrWhiteSpace(toolName))
         {
@@ -71,6 +75,9 @@ public sealed class ToolExecution
         return new ToolExecution
         {
             RunId = runId,
+            CorrelationId = string.IsNullOrWhiteSpace(correlationId)
+                ? DomainId.NewCorrelationId()
+                : correlationId,
             ToolName = toolName,
             PolicyOutcome = outcome,
             ApprovalId = approvalId,
