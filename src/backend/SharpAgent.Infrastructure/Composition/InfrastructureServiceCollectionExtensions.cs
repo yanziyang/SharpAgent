@@ -71,6 +71,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
         services.AddSingleton(LocalDemoOptions.FromConfiguration(configuration));
         services.AddSingleton<LocalDemoCatalogSeeder>();
+        services.AddSingleton(OpenCodeGoCatalogOptions.FromConfiguration(configuration));
+        services.AddSingleton<OpenCodeGoModelCatalogClient>();
+        services.AddSingleton<OpenCodeGoCatalogSeeder>();
         services.AddSingleton<RetentionCleanupService>();
         services.AddSingleton<DbInitializer>();
 

@@ -1,10 +1,13 @@
 using Microsoft.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
+using OpenAI.Responses;
 using SharpAgent.Application.Abstractions;
 using SharpAgent.Domain.Profiles;
 
 using System.ClientModel;
+
+#pragma warning disable OPENAI001 // OpenCode Go publishes a Responses endpoint; this adapter owns the opt-in transport.
 namespace SharpAgent.Providers.Common;
 
 /// <summary>
@@ -23,7 +26,7 @@ public static class ChatClientFactory
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(secretReference);
 
-        if (profile.EndpointKind != EndpointKind.ChatCompletions)
+        if (profile.EndpointKind is not (EndpointKind.ChatCompletions or EndpointKind.Responses))
         {
             throw new InvalidOperationException(
                 $"Endpoint style '{profile.EndpointKind}' is not supported for chat clients yet.");
@@ -36,8 +39,18 @@ public static class ChatClientFactory
                 $"Provider secret '{secretReference.EnvironmentVariableName}' is not configured on this server.");
         }
 
-        var options = new OpenAIClientOptions { Endpoint = new Uri(baseUrl) };
-        var chatClient = new ChatClient(profile.ProviderModelId, new ApiKeyCredential(key), options);
-        return chatClient.AsIChatClient();
+        return profile.EndpointKind switch
+        {
+            EndpointKind.ChatCompletions => new ChatClient(
+                profile.ProviderModelId,
+                new ApiKeyCredential(key),
+                new OpenAIClientOptions { Endpoint = new Uri(baseUrl) }).AsIChatClient(),
+            EndpointKind.Responses => new ResponsesClient(
+                new ApiKeyCredential(key),
+                new ResponsesClientOptions { Endpoint = new Uri(baseUrl) }).AsIChatClient(profile.ProviderModelId),
+            _ => throw new InvalidOperationException(
+                $"Endpoint style '{profile.EndpointKind}' is not supported for chat clients yet."),
+        };
     }
 }
+#pragma warning restore OPENAI001

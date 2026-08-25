@@ -89,6 +89,14 @@ export function NewSessionPage() {
           </AlertDescription>
         </Alert>
       ) : null}
+      {catalog.kind === 'ready' && profiles.length > 0 && eligibleProfiles.length === 0 ? (
+        <Alert>
+          <AlertTitle>No model is eligible for this run mode</AlertTitle>
+          <AlertDescription>
+            Select Plan only or validate a compatible provider profile from <Link className="underline" to="/settings/models">Model profiles</Link>.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {catalog.kind === 'ready' ? <form className="session-form" onSubmit={handleSubmit}>
         <Card>
@@ -109,7 +117,7 @@ export function NewSessionPage() {
               <button type="button" role="radio" aria-checked={mode === 'plan'} className={mode === 'plan' ? 'mode-choice active' : 'mode-choice'} onClick={() => setMode('plan')}><CircleHelp /><span><strong>Plan only</strong><small>Read and search without side effects.</small></span></button>
               <button type="button" role="radio" aria-checked={mode === 'execute'} className={mode === 'execute' ? 'mode-choice active' : 'mode-choice'} onClick={() => setMode('execute')}><ShieldCheck /><span><strong>Controlled execute</strong><small>Writes and commands require policy decisions and one-time approval.</small></span></button>
             </div>
-            <label className="form-field"><span>Model profile</span><select aria-label="Model profile" value={effectiveModelProfileId} onChange={(event) => setModelProfileId(event.target.value)} required><option value="" disabled>Select an eligible profile</option>{profiles.map((profile) => <option key={profile.id} value={profile.id} disabled={!profile.enabled || !eligibleProfiles.some((candidate) => candidate.id === profile.id)}>{profile.displayName} · {profile.validationStatus}{profile.eligibleForExecute ? '' : ' · plan only'}</option>)}</select></label>
+            <label className="form-field"><span>Model profile</span><select aria-label="Model profile" value={effectiveModelProfileId} onChange={(event) => setModelProfileId(event.target.value)} required><option value="" disabled>Select an eligible profile</option>{eligibleProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName} · {profile.provider}{profile.eligibleForExecute ? '' : ' · plan only'}</option>)}</select></label>
           </CardContent>
         </Card>
 

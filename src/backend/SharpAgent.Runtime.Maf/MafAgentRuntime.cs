@@ -38,6 +38,12 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
             new EventId(22, nameof(LogProviderCallFailed)),
             "provider_call_failed exceptionType={ExceptionType}");
 
+    private static readonly Action<ILogger, string, Exception?> LogUnrecognizedContent =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(23, nameof(LogUnrecognizedContent)),
+            "provider_update_unrecognized contentType={ContentType}");
+
     private sealed record ParsedTodo(string Text, bool Done);
 
     public async Task<RunOutcome> RunAsync(
@@ -85,7 +91,7 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
 
         var session = await agent.CreateSessionAsync(runCt).ConfigureAwait(false);
         var opening = BuildOpeningMessage(context);
-        var processor = new UpdateProcessor(context, sink, clock);
+        var processor = new UpdateProcessor(context, sink, clock, logger);
         var assistant = new StringBuilder();
 
         try
@@ -191,7 +197,11 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
     }
 
     /// <summary>Converts MAF/ExtAI update contents into canonical run events.</summary>
-    private sealed class UpdateProcessor(RunContext context, IRunEventSink sink, IClock clock)
+    private sealed class UpdateProcessor(
+        RunContext context,
+        IRunEventSink sink,
+        IClock clock,
+        ILogger<MafAgentRuntime>? logger)
     {
         public int ToolCallCount { get; private set; }
 
@@ -200,6 +210,7 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
         private string? _lastToolName;
         private string? _lastToolArguments;
         private decimal _accumulatedCostUsd;
+        private bool _unknownContentLogged;
 
         public async Task<ProcessorSignal> ProcessAsync(AgentResponseUpdate update, StringBuilder assistant)
         {
@@ -232,7 +243,7 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
                                 TodoId: null,
                                 TodoText: null,
                                 ToolName: SafeToolName(call.Name),
-                                Detail: SafeSummary(call.Arguments?.ToString()),
+                                Detail: SafeSummary(SerializeArguments(call.Arguments)),
                                 clock.UtcNow),
                             CancellationToken.None).ConfigureAwait(false);
                         break;
@@ -259,7 +270,26 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
 
                         break;
 
+                    case AIContent providerText when IsTextContent(providerText):
+                        // Some OpenCode-compatible transports return a TextContent
+                        // instance from a compatible Microsoft.Extensions.AI
+                        // assembly that does not satisfy the direct type pattern
+                        // above. Read only the public text property as a bounded,
+                        // provider-neutral compatibility fallback.
+                        if (TryReadText(providerText, out var fallbackText))
+                        {
+                            AppendAssistant(assistant, fallbackText);
+                        }
+
+                        break;
+
                     default:
+                        if (!_unknownContentLogged && logger is not null)
+                        {
+                            _unknownContentLogged = true;
+                            LogUnrecognizedContent(logger, content.GetType().FullName ?? content.GetType().Name, null);
+                        }
+
                         // Truly unknown content becomes a safe informational event;
                         // provider or MAF types never escape the adapter.
                         await sink.EmitAsync(
@@ -489,6 +519,30 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
 
             var remaining = MaxAssistantSummaryLength - assistant.Length;
             assistant.Append(delta.Length <= remaining ? delta : delta[..remaining]);
+        }
+
+        private static bool IsTextContent(AIContent content) =>
+            string.Equals(
+                content.GetType().FullName,
+                typeof(TextContent).FullName,
+                StringComparison.Ordinal);
+
+        private static bool TryReadText(AIContent content, out string text)
+        {
+            text = string.Empty;
+            var property = content.GetType().GetProperty(
+                nameof(TextContent.Text),
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public);
+
+            if (property?.PropertyType != typeof(string)
+                || property.GetValue(content) is not string value)
+            {
+                return false;
+            }
+
+            text = value;
+            return true;
         }
     }
 

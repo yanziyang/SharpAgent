@@ -7,8 +7,9 @@ using SharpAgent.Providers.Common;
 namespace SharpAgent.Providers;
 
 /// <summary>
-/// OpenCode Go adapter (FR-053). The ChatCompletions endpoint style is supported
-/// in this slice; other styles fail validation with a safe unsupported error.
+/// OpenCode Go adapter (FR-053). OpenCode publishes the provider base endpoint;
+/// the selected profile determines whether the Responses or ChatCompletions
+/// transport is used by the provider client.
 /// The strict Plan allowlist (plan section 4.2) is enforced here AND in profile
 /// validation, so no unapproved model ever reaches the outbound transport.
 /// </summary>
@@ -16,7 +17,7 @@ public sealed class OpenCodeGoAdapter(ProviderValidationRunner runner) : IModelP
 {
     public const string BaseUrlVariable = "SHARPAGENT_OPENCODE_GO_BASE_URL";
 
-    public const string DefaultBaseUrl = "https://api.opencode.go/v1";
+    public const string DefaultBaseUrl = "https://opencode.ai/zen/go/v1";
 
     public ProviderKind Provider => ProviderKind.OpenCodeGo;
 

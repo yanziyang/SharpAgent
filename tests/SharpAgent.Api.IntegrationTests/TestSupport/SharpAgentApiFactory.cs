@@ -14,6 +14,9 @@ namespace SharpAgent.Api.IntegrationTests.TestSupport;
 /// </summary>
 public sealed class SharpAgentApiFactory : WebApplicationFactory<Program>
 {
+    static SharpAgentApiFactory() =>
+        Environment.SetEnvironmentVariable("SHARPAGENT_DISABLE_LOCAL_CONFIGURATION", "true");
+
     public string? SqlitePath { get; init; }
 
     public IReadOnlyList<IHealthProbe>? ProbeOverrides { get; set; }
@@ -22,6 +25,8 @@ public sealed class SharpAgentApiFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
         builder.UseSetting(LocalDemoOptions.EnabledKey, "false");
+        builder.UseSetting(OpenCodeGoCatalogOptions.ProviderModelIdsConfigurationKey, string.Empty);
+        builder.UseSetting(OpenCodeGoCatalogOptions.CatalogEnabledConfigurationKey, "false");
 
         if (!string.IsNullOrWhiteSpace(SqlitePath))
         {

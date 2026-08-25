@@ -43,6 +43,23 @@ The demo exercises session lifecycle, durable activity, usage, and review UI wit
 inspecting or changing files. Real provider profiles must be configured server-side
 with secrets kept outside the browser and SQLite.
 
+For local OpenCode Go Plan use, copy
+`appsettings.Local.example.json` to the repository root as
+`appsettings.Local.json` and put the API key in `OpenCodeGo:ApiKey`. This file
+is ignored by Git and is loaded only by the server process. SharpAgent retrieves
+the current non-secret model catalog from
+`https://opencode.ai/zen/go/v1/models` at API startup and keeps the three
+approved Plan profiles: `Ox Alpha Free`, `Muse Spark 1.2 Contributor`, and
+`MiMo-V2.5`. The local
+`appsettings.Local.json` file contains the catalog URL and non-secret fallback
+IDs; the browser never receives the API key.
+
+```powershell
+```
+
+Restart the API after changing the local configuration. The browser
+receives only provider-neutral profile IDs and safe capability metadata.
+
 ### Live provider evidence (local opt-in only)
 
 Never commit `LLM-Key.md` or any key. To run the non-destructive OpenCode Go Plan smoke locally:

@@ -120,7 +120,7 @@ public sealed class AdapterDispatchTests : IDisposable
 
         Assert.Equal(ProviderErrorCategory.None, result.Error.Category);
         Assert.Equal(
-            "https://api.opencode.go/v1/chat/completions",
+            "https://opencode.ai/zen/go/v1/chat/completions",
             Assert.Single(handler.Requests).Request.RequestUri!.ToString());
     }
 
@@ -153,9 +153,9 @@ public sealed class AdapterDispatchTests : IDisposable
 
         var unsupportedProfile = ModelProfile.Register(
             ProviderKind.DeepSeek,
-            "Responses",
+            "Anthropic",
             "model-id",
-            EndpointKind.Responses,
+            EndpointKind.AnthropicMessages,
             DateTimeOffset.UtcNow);
         var unsupported = Assert.Throws<InvalidOperationException>(() =>
             ChatClientFactory.Create("https://fake.test/v1", unsupportedProfile, new ProviderSecretReference(TestSecretVariable)));
