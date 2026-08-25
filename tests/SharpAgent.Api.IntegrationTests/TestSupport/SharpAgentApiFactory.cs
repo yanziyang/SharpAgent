@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using SharpAgent.Application.Health;
 using SharpAgent.Infrastructure.Persistence;
+using SharpAgent.Infrastructure.Setup;
 
 namespace SharpAgent.Api.IntegrationTests.TestSupport;
 
@@ -20,6 +21,7 @@ public sealed class SharpAgentApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.UseSetting(LocalDemoOptions.EnabledKey, "false");
 
         if (!string.IsNullOrWhiteSpace(SqlitePath))
         {

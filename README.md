@@ -30,6 +30,19 @@ Useful inner-loop commands:
 | `dotnet test src/SharpAgent.sln` | Backend tests. |
 | `npm run test -w src/frontend/sharpagent-web` | Frontend unit tests. |
 
+### First-run local walkthrough
+
+Development startup enables an explicit, credential-free local demo catalog:
+
+- `Offline demo (Plan only)` is deterministic and makes no external provider request.
+- `Default safe policy` is seeded with bounded limits and approval-gated write/command rules.
+- Register a trusted repository root from **Administration → Workspaces**.
+- Open **New session**, keep **Plan only** selected, describe a task, and start the run.
+
+The demo exercises session lifecycle, durable activity, usage, and review UI without
+inspecting or changing files. Real provider profiles must be configured server-side
+with secrets kept outside the browser and SQLite.
+
 ### Live provider evidence (local opt-in only)
 
 Never commit `LLM-Key.md` or any key. To run the non-destructive OpenCode Go Plan smoke locally:

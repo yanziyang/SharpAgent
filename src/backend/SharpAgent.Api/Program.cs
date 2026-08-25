@@ -7,6 +7,7 @@ using SharpAgent.Api.Middleware;
 using SharpAgent.Api.Startup;
 using SharpAgent.Api.Runtime;
 using SharpAgent.Application;
+using SharpAgent.Infrastructure.Setup;
 using SharpAgent.Providers;
 using SharpAgent.Runtime.Maf;
 
@@ -20,10 +21,13 @@ builder.Services.ConfigureHttpJsonOptions(static options =>
         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
 });
 builder.Services.AddApplicationServices();
-builder.Services.AddProviderAdapters();
+var localDemoEnabled = builder.Environment.IsDevelopment()
+    && builder.Configuration.GetValue<bool>(LocalDemoOptions.EnabledKey);
+builder.Services.AddProviderAdapters(localDemoEnabled);
 builder.Services.AddMafRuntime();
 builder.Services.AddSharpAgentServices(builder.Configuration);
 builder.Services.AddHostedService<PersistenceStartupService>();
+builder.Services.AddHostedService<LocalDemoCatalogStartupService>();
 builder.Services.AddRunCoordinator();
 
 var app = builder.Build();

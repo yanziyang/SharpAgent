@@ -74,6 +74,21 @@ export function NewSessionPage() {
       {catalog.kind === 'loading' ? <LoadingState label="Loading validated workspaces and profiles…" /> : null}
       {catalog.kind === 'error' ? <ErrorState message={catalog.message} onRetry={catalog.reload} /> : null}
       {error ? <Alert variant="destructive"><AlertTitle>Session not created</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
+      {catalog.kind === 'ready' && (workspaces.length === 0 || profiles.length === 0 || policies.length === 0) ? (
+        <Alert>
+          <AlertTitle>Complete local setup</AlertTitle>
+          <AlertDescription>
+            {workspaces.length === 0 ? 'Register a trusted workspace before creating a session. ' : null}
+            {profiles.length === 0 ? 'A validated model profile is required. ' : null}
+            {policies.length === 0 ? 'A policy profile is required.' : null}
+            <div className="form-actions-row">
+              {workspaces.length === 0 ? <Button variant="outline" render={<Link to="/settings/workspaces" />}>Register workspace</Button> : null}
+              {profiles.length === 0 ? <Button variant="outline" render={<Link to="/settings/models" />}>Review model profiles</Button> : null}
+              {policies.length === 0 ? <Button variant="outline" render={<Link to="/settings/policy" />}>Review policy</Button> : null}
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {catalog.kind === 'ready' ? <form className="session-form" onSubmit={handleSubmit}>
         <Card>

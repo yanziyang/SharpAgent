@@ -44,6 +44,9 @@ ScaffoldingReadMe.txt
 # Local LLM credentials (never commit)
 LLM-Key.md
 
+# Local SharpAgent runtime database (development only)
+src/backend/SharpAgent.Api/data/
+
 # Node / web tooling (workspace root)
 node_modules/
 dist/

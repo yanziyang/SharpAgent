@@ -7,6 +7,7 @@ using SharpAgent.Application.Tools;
 using SharpAgent.Infrastructure.Health;
 using SharpAgent.Infrastructure.Persistence;
 using SharpAgent.Infrastructure.Retention;
+using SharpAgent.Infrastructure.Setup;
 using SharpAgent.Infrastructure.Timing;
 using SharpAgent.Infrastructure.Workspaces;
 
@@ -68,6 +69,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IClock>(SystemClock.Instance);
         services.AddSingleton<IWorkspaceRootValidator, FileSystemRootValidator>();
         services.AddSingleton(RetentionOptions.FromConfiguration(configuration));
+        services.AddSingleton(LocalDemoOptions.FromConfiguration(configuration));
+        services.AddSingleton<LocalDemoCatalogSeeder>();
         services.AddSingleton<RetentionCleanupService>();
         services.AddSingleton<DbInitializer>();
 

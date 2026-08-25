@@ -21,7 +21,7 @@ public static class ProvidersServiceCollectionExtensions
     /// Registers the provider adapters and the adapter registry. Adapters share one
     /// HttpClient with a short timeout; automatic fallback stays OFF (FR-056).
     /// </summary>
-    public static IServiceCollection AddProviderAdapters(this IServiceCollection services)
+    public static IServiceCollection AddProviderAdapters(this IServiceCollection services, bool enableLocalDemo = false)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -30,6 +30,10 @@ public static class ProvidersServiceCollectionExtensions
         services.AddSingleton<IModelProviderAdapter, OpenCodeGoAdapter>();
         services.AddSingleton<IModelProviderAdapter, DeepSeekAdapter>();
         services.AddSingleton<IModelProviderAdapter, OpenRouterAdapter>();
+        if (enableLocalDemo)
+        {
+            services.AddSingleton<IModelProviderAdapter, LocalDemoProviderAdapter>();
+        }
         services.AddSingleton<IProviderAdapterRegistry, ProviderAdapterRegistry>();
 
         return services;
