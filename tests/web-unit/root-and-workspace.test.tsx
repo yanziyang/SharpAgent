@@ -14,6 +14,7 @@ const summary = {
 
 const session = {
   ...summary,
+  policyProfileId: 'policy_1',
   runs: [{ id: 'run_1', sequence: 1, status: 'executing', startedAtUtc: '2026-08-25T09:00:00Z', endedAtUtc: null, stopReason: null, resumeSourceRunId: null }],
 }
 
@@ -23,11 +24,15 @@ const approval = {
   status: 'pending', expiresAtUtc: '2026-08-25T10:00:00Z',
 }
 
-const singlePathApproval = { ...approval, id: 'approval_single', affectedPaths: ['src/parser.ts'] }
-const emptyPathApproval = { ...approval, id: 'approval_empty', affectedPaths: [] }
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+function catalogResponse(path: string): Response | undefined {
+  if (path.endsWith('/workspaces')) return jsonResponse([{ id: 'ws_1', name: 'SharpAgent repository' }])
+  if (path.endsWith('/model-profiles')) return jsonResponse([{ id: 'model_1', displayName: 'Ox Alpha Free' }])
+  if (path.endsWith('/policy-profiles')) return jsonResponse([{ id: 'policy_1', name: 'Default safe policy' }])
+  return undefined
 }
 
 function renderRoot(initialEntry: string, fetchMock: ReturnType<typeof vi.fn>) {
@@ -85,136 +90,149 @@ function streamResponse(controllerRef: { current?: ReadableStreamDefaultControll
 function renderWorkspace(fetchMock: ReturnType<typeof vi.fn>) {
   const router = createMemoryRouter([
     { path: '/sessions/:sessionId', element: <SessionWorkspacePage /> },
+    { path: '/sessions/archive', element: <div>Archived conversations</div> },
   ], { initialEntries: ['/sessions/ses_1'] })
   vi.stubGlobal('fetch', fetchMock)
   return render(<ThemeProvider><RouterProvider router={router} /></ThemeProvider>)
 }
 
-describe('session workspace', () => {
+describe('session chat', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('renders timeline, approval details, tabs, composer, and run controls', async () => {
+  it('renders only conversation messages while assistant output streams', async () => {
+    const controllerRef: { current?: ReadableStreamDefaultController<Uint8Array> } = {}
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input)
+      const catalog = catalogResponse(path)
+      if (catalog) return Promise.resolve(catalog)
+      if (path.endsWith('/events')) return Promise.resolve(streamResponse(controllerRef))
+      if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([]))
+      return Promise.resolve(jsonResponse(session))
+    })
+    renderWorkspace(fetchMock)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Conversation' })).toBeInTheDocument()
+    await waitFor(() => expect(controllerRef.current).toBeDefined())
+    actEnqueue(controllerRef.current, JSON.stringify({
+      sequence: 1, type: 'run_started', sessionId: 'ses_1', runId: 'run_1', eventId: 'evt_1',
+      occurredAtUtc: '2026-08-25T09:05:00Z', payload: { instruction: null },
+    }), 'run_started', '1')
+    actEnqueue(controllerRef.current, JSON.stringify({
+      sequence: 2, type: 'tool_completed', sessionId: 'ses_1', runId: 'run_1', eventId: 'evt_2',
+      occurredAtUtc: '2026-08-25T09:05:01Z', payload: { tool: 'read_file' },
+    }), 'tool_completed', '2')
+    actEnqueue(controllerRef.current, JSON.stringify({
+      sequence: 3, type: 'assistant_summary', sessionId: 'ses_1', runId: 'run_1', eventId: 'evt_3',
+      occurredAtUtc: '2026-08-25T09:05:02Z', payload: { summary: 'Beijing is the ' },
+    }), 'assistant_summary', '3')
+    actEnqueue(controllerRef.current, JSON.stringify({
+      sequence: 4, type: 'assistant_summary', sessionId: 'ses_1', runId: 'run_1', eventId: 'evt_4',
+      occurredAtUtc: '2026-08-25T09:05:03Z', payload: { summary: 'capital of China.' },
+    }), 'assistant_summary', '4')
+
+    expect(await screen.findByText('Beijing is the capital of China.', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Streaming')).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Changes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Terminal' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: 'Session details' })).not.toBeInTheDocument()
+    expect(screen.queryByText('read_file')).not.toBeInTheDocument()
+  })
+
+  it('sends a follow-up message through the chat composer', async () => {
+    const completedSession = {
+      ...session,
+      status: 'completed',
+      activeRunId: null,
+      runs: [{ ...session.runs[0], status: 'completed', endedAtUtc: '2026-08-25T09:10:00Z' }],
+    }
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input)
+      const catalog = catalogResponse(path)
+      if (catalog) return Promise.resolve(catalog)
+      if (path.endsWith('/events')) return Promise.resolve(new Response(new ReadableStream(), { headers: { 'Content-Type': 'text/event-stream' } }))
+      if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([]))
+      if (path.endsWith('/runs') && init?.method === 'POST') return Promise.resolve(jsonResponse({ session: completedSession, run: completedSession.runs[0] }))
+      return Promise.resolve(jsonResponse(completedSession))
+    })
+    const user = userEvent.setup()
+    renderWorkspace(fetchMock)
+
+    await screen.findByRole('heading', { level: 1, name: 'Conversation' })
+    const composer = screen.getByRole('textbox', { name: 'Send a follow-up message' })
+    await user.type(composer, 'Continue with the focused test')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions/ses_1/runs', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('Continue with the focused test'),
+    })))
+  })
+
+  it('keeps approval controls visible in the conversation', async () => {
     const controllerRef: { current?: ReadableStreamDefaultController<Uint8Array> } = {}
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input)
+      const catalog = catalogResponse(path)
+      if (catalog) return Promise.resolve(catalog)
       if (path.endsWith('/events')) return Promise.resolve(streamResponse(controllerRef))
-      if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([approval, singlePathApproval, emptyPathApproval]))
-      if (path.endsWith('/api/sessions/ses_1')) return Promise.resolve(jsonResponse(session))
-      if (init?.method === 'POST') return Promise.resolve(jsonResponse(session))
+      if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([approval]))
+      if (init?.method === 'POST') return Promise.resolve(jsonResponse({}))
       return Promise.resolve(jsonResponse(session))
     })
     const user = userEvent.setup()
     renderWorkspace(fetchMock)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Inspect the parser' })).toBeInTheDocument()
-    await waitFor(() => expect(controllerRef.current).toBeDefined())
-    actEnqueue(controllerRef.current, JSON.stringify({
-      sequence: 1, type: 'approval_requested', sessionId: 'ses_1', runId: 'run_1', eventId: 'evt_1',
-      occurredAtUtc: '2026-08-25T09:05:00Z', payload: { approvalId: 'approval_1', summary: 'Permission required' },
-    }), 'approval_requested', '1')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 2, payload: { message: 'Todo created' } }), 'todo_created', '2')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 3, payload: { tool: 'read_file' } }), 'tool_completed', '3')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 4, payload: { path: 'src/parser.ts' } }), 'change_detected', '4')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 5, payload: { detail: 'Context compacted' } }), 'context_compacted', '5')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 6, payload: { output: 'validated' } }), 'run_completed', '6')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 7, payload: {} }), 'unknown_event', '7')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 8, payload: { approvalId: 'approval_single' } }), 'approval_requested', '8')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 9, payload: { approvalId: 'approval_empty' } }), 'approval_requested', '9')
-    actEnqueue(controllerRef.current, JSON.stringify({ sequence: 10, payload: { message: 'Todo completed' } }), 'todo_updated', '10')
-    expect((await screen.findAllByText('Apply the focused parser patch.')).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('2 bounded paths')).toBeInTheDocument()
-    expect(screen.getByText('1 bounded path')).toBeInTheDocument()
-    expect(screen.getByText('No file paths disclosed')).toBeInTheDocument()
-    expect(screen.getAllByText('Todo completed').length).toBeGreaterThanOrEqual(2)
-
-    await user.click(screen.getAllByRole('button', { name: 'Approve once' })[0]!)
+    expect(await screen.findByText('Apply the focused parser patch.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Approve once' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/approvals/approval_1/resolve', expect.objectContaining({ method: 'POST' })))
-
-    await user.click(screen.getByRole('tab', { name: 'Changes' }))
-    expect(screen.getByRole('heading', { name: 'Change review' })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: 'Terminal' }))
-    expect(screen.getByRole('heading', { name: 'Bounded terminal evidence' })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: 'Final review' }))
-    expect(screen.getByRole('heading', { name: 'Run controls' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Cancel active run' }))
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('Cancel this run?')
-    await user.click(screen.getByRole('button', { name: 'Confirm' }))
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions/ses_1/cancel', expect.objectContaining({ method: 'POST' })))
-    await user.click(screen.getByRole('button', { name: 'Details' }))
-    expect(screen.queryByRole('complementary', { name: 'Session details' })).not.toBeInTheDocument()
   })
 
-  it('starts a follow-up and exposes safe stream failures', async () => {
-    const completedSession = { ...session, status: 'completed', activeRunId: null, runs: [{ ...session.runs[0], status: 'completed', endedAtUtc: '2026-08-25T09:10:00Z' }] }
+  it('archives an inactive conversation behind a confirmation', async () => {
+    const completedSession = {
+      ...session,
+      status: 'completed',
+      activeRunId: null,
+      runs: [{ ...session.runs[0], status: 'completed', endedAtUtc: '2026-08-25T09:10:00Z' }],
+    }
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input)
-      if (path.endsWith('/events')) return Promise.reject(new Error('stream unavailable'))
-      if (init?.method === 'POST') return Promise.resolve(jsonResponse(completedSession))
-      if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([]))
-      return Promise.resolve(jsonResponse(completedSession))
-    })
-    const user = userEvent.setup()
-    renderWorkspace(fetchMock)
-    expect(await screen.findByRole('heading', { level: 1, name: 'Inspect the parser' })).toBeInTheDocument()
-    const composer = screen.getByRole('textbox', { name: 'Send a follow-up instruction' })
-    await user.type(composer, 'Continue with the focused test')
-    await user.click(screen.getByRole('button', { name: 'Resume run' }))
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions/ses_1/runs', expect.objectContaining({ method: 'POST' })))
-  })
-
-  it('archives an inactive session behind a confirmation dialog', async () => {
-    const completedSession = { ...session, status: 'completed', activeRunId: null, runs: [{ ...session.runs[0], status: 'completed', endedAtUtc: '2026-08-25T09:10:00Z' }] }
-    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-      const path = String(input)
+      const catalog = catalogResponse(path)
+      if (catalog) return Promise.resolve(catalog)
       if (path.endsWith('/events')) return Promise.resolve(new Response(new ReadableStream(), { headers: { 'Content-Type': 'text/event-stream' } }))
-      if (init?.method === 'POST') return Promise.resolve(jsonResponse(completedSession))
       if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([]))
+      if (path.endsWith('/archive') && init?.method === 'POST') return Promise.resolve(jsonResponse(completedSession))
       return Promise.resolve(jsonResponse(completedSession))
     })
     const user = userEvent.setup()
     renderWorkspace(fetchMock)
-    await screen.findByRole('heading', { level: 1, name: 'Inspect the parser' })
-    await user.click(screen.getByRole('tab', { name: 'Final review' }))
-    await user.click(screen.getByRole('button', { name: 'Archive session' }))
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('Archive this session?')
+
+    await screen.findByRole('heading', { level: 1, name: 'Conversation' })
+    await user.click(screen.getByRole('button', { name: 'Archive' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Archive this conversation?')
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions/ses_1/archive', expect.objectContaining({ method: 'POST' })))
+    expect(await screen.findByText('Archived conversations')).toBeInTheDocument()
   })
 
-  it('renders draft execute controls and starts with an empty instruction', async () => {
-    const draftSession = { ...session, status: 'draft', mode: 'execute', activeRunId: null, runs: [] }
+  it('shows a stream interruption and command error for an active response', async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input)
-      if (path.endsWith('/events')) return Promise.resolve(new Response(new ReadableStream(), { headers: { 'Content-Type': 'text/event-stream' } }))
-      if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([]))
-      if (init?.method === 'POST') return Promise.resolve(jsonResponse(draftSession))
-      return Promise.resolve(jsonResponse(draftSession))
-    })
-    const user = userEvent.setup()
-    renderWorkspace(fetchMock)
-    await screen.findByRole('heading', { level: 1, name: 'Inspect the parser' })
-    expect(screen.getAllByText('Controlled execute').length).toBeGreaterThanOrEqual(2)
-    expect(screen.getByText('Not started')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Start run' }))
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions/ses_1/runs', expect.objectContaining({ method: 'POST' })))
-  })
-
-  it('shows a stream interruption and command error for an active run', async () => {
-    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-      const path = String(input)
+      const catalog = catalogResponse(path)
+      if (catalog) return Promise.resolve(catalog)
       if (path.endsWith('/events')) return Promise.reject(new Error('stream unavailable'))
       if (path.endsWith('/approvals/pending')) return Promise.resolve(jsonResponse([]))
-      if (path.endsWith('/cancel')) return Promise.reject(new Error('cancel unavailable'))
+      if (path.endsWith('/cancel') && init?.method === 'POST') return Promise.reject(new Error('cancel unavailable'))
       return Promise.resolve(jsonResponse(session))
     })
     const user = userEvent.setup()
     renderWorkspace(fetchMock)
-    await screen.findByRole('heading', { level: 1, name: 'Inspect the parser' })
+
+    await screen.findByRole('heading', { level: 1, name: 'Conversation' })
     expect(await screen.findByText('stream unavailable')).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: 'Final review' }))
-    await user.click(screen.getByRole('button', { name: 'Cancel active run' }))
+    await user.click(screen.getByRole('button', { name: 'Stop response' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Stop this response?')
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
-    expect(await screen.findByText('Command needs attention')).toBeInTheDocument()
+    expect(await screen.findByText('The SharpAgent service is unreachable.')).toBeInTheDocument()
   })
 })
 

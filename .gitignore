@@ -47,6 +47,9 @@ LLM-Key.md
 # Root-local application configuration (may contain provider credentials)
 appsettings.Local.json
 
+# Local SharpAgent runtime database when the API is launched from the repository root
+data/
+
 # Local SharpAgent runtime database (development only)
 src/backend/SharpAgent.Api/data/
 

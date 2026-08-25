@@ -41,6 +41,23 @@ if (!localConfigurationDisabled)
     }
 }
 
+// Troubleshooting logging is server-only. Local configuration can disable it
+// without exposing a logging switch, provider payload, or environment value to
+// the browser.
+if (!builder.Configuration.GetValue("Troubleshooting:LoggingEnabled", true))
+{
+    builder.Logging.ClearProviders();
+}
+else
+{
+    // Keep local failures observable in the console without relying on the
+    // Windows Event Log source, which may be unavailable to a non-admin local
+    // operator and can otherwise terminate the run coordinator while it logs
+    // a provider failure.
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole();
+}
+
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<SharpAgentProblemHandler>();
 builder.Services.ConfigureHttpJsonOptions(static options =>

@@ -133,9 +133,15 @@ public sealed class SessionService(
                         "This run needs an enabled model profile.");
                 }
 
+                var instruction = string.IsNullOrWhiteSpace(request.Instruction) ? null : request.Instruction.Trim();
+                if (instruction is not null && instruction.Length > MaxTaskLength)
+                {
+                    throw ValidationException.ForField("instruction", $"Instruction text must be {MaxTaskLength} characters or fewer.");
+                }
+
                 var run = session.BeginRun(
                     clock.UtcNow,
-                    string.IsNullOrWhiteSpace(request.Instruction) ? null : request.Instruction.Trim(),
+                    instruction,
                     string.IsNullOrWhiteSpace(request.ResumeFromRunId) ? null : request.ResumeFromRunId.Trim());
 
                 await leases.AddAsync(RunLease.Acquire(session.Id, run.Id, clock.UtcNow), transactionCancellationToken)
@@ -151,6 +157,7 @@ public sealed class SessionService(
                             sequence = run.Sequence,
                             mode = session.Mode.ToString().ToLowerInvariant(),
                             resumed = run.ResumeSourceRunId is not null,
+                            instruction,
                         },
                         transactionCancellationToken)
                     .ConfigureAwait(false));

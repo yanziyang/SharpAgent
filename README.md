@@ -37,7 +37,9 @@ Development startup enables an explicit, credential-free local demo catalog:
 - `Offline demo (Plan only)` is deterministic and makes no external provider request.
 - `Default safe policy` is seeded with bounded limits and approval-gated write/command rules.
 - Register a trusted repository root from **Administration → Workspaces**.
-- Open **New session**, keep **Plan only** selected, describe a task, and start the run.
+- Open **New session**. The conversation page opens directly; choose the run mode,
+  model, workspace, and security policy on that page, enter the first message, and
+  select **Send** to create the session and start the run.
 
 The demo exercises session lifecycle, durable activity, usage, and review UI without
 inspecting or changing files. Real provider profiles must be configured server-side
@@ -59,6 +61,11 @@ IDs; the browser never receives the API key.
 
 Restart the API after changing the local configuration. The browser
 receives only provider-neutral profile IDs and safe capability metadata.
+
+For troubleshooting, set `Troubleshooting:LoggingEnabled` to `false` in the root
+`appsettings.Local.json` to disable server logging. Logging is server-side only;
+provider credentials, raw provider payloads, and hidden reasoning are never sent
+to the browser.
 
 ### Live provider evidence (local opt-in only)
 

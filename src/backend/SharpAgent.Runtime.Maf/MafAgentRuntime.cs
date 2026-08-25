@@ -104,6 +104,7 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
             await foreach (var update in agent.RunStreamingAsync([opening], session, new ChatClientAgentRunOptions(), runCt).ConfigureAwait(false))
             {
                 var action = await processor.ProcessAsync(update, assistant).ConfigureAwait(false);
+                await processor.FlushAssistantAsync(assistant).ConfigureAwait(false);
                 if (action is ProcessorSignal.StopAwaitingApproval or ProcessorSignal.StopLimitReached)
                 {
                     break;
@@ -211,6 +212,7 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
         private string? _lastToolArguments;
         private decimal _accumulatedCostUsd;
         private bool _unknownContentLogged;
+        private int _emittedAssistantLength;
 
         public async Task<ProcessorSignal> ProcessAsync(AgentResponseUpdate update, StringBuilder assistant)
         {
@@ -311,13 +313,13 @@ public sealed class MafAgentRuntime(IClock clock, ILogger<MafAgentRuntime>? logg
 
         public async Task FlushAssistantAsync(StringBuilder assistant)
         {
-            if (assistant.Length == 0)
+            if (assistant.Length <= _emittedAssistantLength)
             {
                 return;
             }
 
-            var text = assistant.ToString();
-            assistant.Clear();
+            var text = assistant.ToString(_emittedAssistantLength, assistant.Length - _emittedAssistantLength);
+            _emittedAssistantLength = assistant.Length;
 
             if (!string.IsNullOrWhiteSpace(text))
             {

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -108,7 +108,7 @@ function renderPage(element: React.ReactElement) {
   return render(<ThemeProvider><MemoryRouter>{element}</MemoryRouter></ThemeProvider>)
 }
 
-describe('dashboard and session setup pages', () => {
+describe('dashboard and session chat pages', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('renders session metrics and activity when the server has sessions', async () => {
@@ -135,40 +135,54 @@ describe('dashboard and session setup pages', () => {
     expect(screen.getByText('Sessions by state')).toBeInTheDocument()
   })
 
-  it('creates a plan session from the prototype-shaped setup form', async () => {
+  it('opens new sessions directly in the conversation page with in-page controls', async () => {
+    vi.stubGlobal('fetch', defaultApiMock())
+    renderPage(<NewSessionPage />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Conversation' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Session controls' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Run mode' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Model profile' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Workspace' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Policy and limits' })).toBeInTheDocument()
+    expect(screen.queryByText('Task setup')).not.toBeInTheDocument()
+  })
+
+  it('creates the session and starts the first run from the conversation composer', async () => {
     const user = userEvent.setup()
     const fetchMock = defaultApiMock()
     vi.stubGlobal('fetch', fetchMock)
-    renderPage(<NewSessionPage />)
+    render(<ThemeProvider><MemoryRouter initialEntries={['/sessions/new']}><Routes>
+      <Route path="/sessions/new" element={<NewSessionPage />} />
+      <Route path="/sessions/:sessionId" element={<div>Chat opened</div>} />
+    </Routes></MemoryRouter></ThemeProvider>)
 
-    await screen.findByText('Task setup')
-    const form = screen.getByRole('button', { name: /create session/i }).closest('form')
-    fireEvent.submit(form as HTMLFormElement)
-    expect(await screen.findByText('Choose a valid workspace, eligible model profile, policy, and task before creating the session.')).toBeInTheDocument()
-    await user.type(screen.getByLabelText('Task'), 'Find the flaky parser test')
-    await user.click(screen.getByRole('radio', { name: /plan only/i }))
-    await user.click(screen.getByRole('radio', { name: /controlled execute/i }))
+    await screen.findByRole('heading', { level: 1, name: 'Conversation' })
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Run mode' }), 'execute')
     await user.selectOptions(screen.getByLabelText('Model profile'), 'model_1')
-    await user.click(screen.getByRole('button', { name: /create session/i }))
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Find the flaky parser test')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions', expect.objectContaining({ method: 'POST' })))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/sessions/ses_1/runs', expect.objectContaining({ method: 'POST' })))
+    expect(await screen.findByText('Chat opened')).toBeInTheDocument()
     const init = fetchMock.mock.calls.find(([path]) => path === '/api/sessions')?.[1] as RequestInit | undefined
     expect(init?.body).toEqual(expect.stringContaining('Find the flaky parser test'))
   })
 
-  it('shows a safe create-session error without exposing provider details', async () => {
+  it('shows a safe start error without exposing provider details', async () => {
     const user = userEvent.setup()
     const fetchMock = defaultApiMock()
     fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-      if (init?.method === 'POST') return Promise.resolve(jsonResponse({ detail: 'The selected profile is not eligible.', code: 'profile_ineligible' }, 409))
+      if (String(input).endsWith('/runs')) return Promise.resolve(jsonResponse({ detail: 'The selected profile is not eligible.', code: 'profile_ineligible' }, 409))
       return defaultApiMock()(input, init)
     })
     vi.stubGlobal('fetch', fetchMock)
     renderPage(<NewSessionPage />)
-    await screen.findByText('Task setup')
-    await user.type(screen.getByLabelText('Task'), 'Try a rejected run')
-    await user.click(screen.getByRole('button', { name: /create session/i }))
-    expect(await screen.findByText('Session not created')).toBeInTheDocument()
+    await screen.findByRole('heading', { level: 1, name: 'Conversation' })
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Try a rejected run')
+    await user.click(screen.getByRole('button', { name: 'Send' }))
+    expect(await screen.findByText('Chat needs attention')).toBeInTheDocument()
     expect(screen.getByText('The selected profile is not eligible.')).toBeInTheDocument()
   })
 })

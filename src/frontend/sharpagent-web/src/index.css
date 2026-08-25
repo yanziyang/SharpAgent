@@ -1864,3 +1864,647 @@
     width: 100%;
   }
 }
+
+/* Focused conversation surface used by both new and existing sessions. */
+.chat-page {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.chat-header {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px clamp(14px, 3vw, 34px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+}
+
+.chat-header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chat-header-copy h1 {
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.chat-alert,
+.chat-stream-status {
+  margin: 10px clamp(14px, 3vw, 34px) 0;
+}
+
+.chat-alert [data-slot='alert-description'] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-stream-status {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  background: var(--card);
+  font-size: 11px;
+}
+
+.chat-main {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-page .message-scroller {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-lane {
+  display: flex;
+  width: min(100%, 900px);
+  flex-direction: column;
+  gap: 18px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 58px) 30px;
+}
+
+.chat-marker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-marker::before,
+.chat-marker::after {
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+  content: '';
+}
+
+.chat-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.chat-message-user {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.chat-avatar-user {
+  border-radius: 999px;
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.chat-avatar-agent {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+
+.chat-avatar-agent svg {
+  width: 16px;
+  height: 16px;
+}
+
+.chat-message-content {
+  display: flex;
+  min-width: 0;
+  max-width: min(760px, 88%);
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-message-user .chat-message-content {
+  align-items: flex-end;
+}
+
+.chat-message-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+
+.chat-message-meta strong {
+  color: var(--foreground);
+  font-size: 12px;
+}
+
+.chat-bubble {
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  color: var(--foreground);
+  background: var(--card);
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-message-user .chat-bubble {
+  background: var(--muted);
+}
+
+.stream-cursor {
+  display: inline-block;
+  margin-left: 3px;
+  color: var(--primary);
+  animation: chat-cursor-blink 1s steps(2, start) infinite;
+}
+
+@keyframes chat-cursor-blink {
+  50% { opacity: 0; }
+}
+
+.thinking-dots {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.chat-controls {
+  width: min(100%, 1000px);
+  flex: 0 0 auto;
+  margin: 14px auto 0;
+  padding: 0 clamp(16px, 4vw, 58px);
+}
+
+.chat-controls-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-controls-heading h2 {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.chat-controls-grid {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.35fr) repeat(3, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card) 95%, transparent);
+}
+
+.chat-control-mode {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-control-label,
+.chat-controls .form-field > span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chat-mode-choice-group {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.chat-mode-choice-group .mode-choice {
+  min-height: 53px;
+  gap: 7px;
+  padding: 8px;
+}
+
+.chat-mode-choice-group .mode-choice svg {
+  width: 15px;
+  height: 15px;
+}
+
+.chat-mode-choice-group .mode-choice strong {
+  font-size: 11px;
+}
+
+.chat-mode-choice-group .mode-choice small {
+  font-size: 10px;
+}
+
+.chat-controls .form-field {
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.chat-controls .form-field select {
+  min-width: 0;
+  min-height: 53px;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
+.chat-controls-status {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.chat-approval {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-left: 40px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+
+.chat-approval-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.chat-approval-heading > svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.chat-approval-heading p {
+  margin: 6px 0 0;
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chat-approval-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px;
+  border-radius: 7px;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  font-size: 11px;
+}
+
+.chat-approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.chat-composer {
+  display: flex;
+  width: min(100%, 900px);
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 auto;
+  padding: 10px clamp(16px, 4vw, 58px) 16px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+}
+
+.chat-composer textarea {
+  width: 100%;
+  min-height: 74px;
+  padding: 10px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  color: var(--foreground);
+  resize: vertical;
+  background: var(--background);
+  font-size: 13px;
+  outline: none;
+}
+
+.chat-composer textarea:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent);
+}
+
+.chat-composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .chat-controls-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chat-control-mode {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .chat-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .chat-header-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .chat-message-content {
+    max-width: calc(100% - 40px);
+  }
+
+  .chat-approval {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-controls-grid,
+  .chat-mode-choice-group {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-control-mode {
+    grid-column: auto;
+  }
+}
+
+/* OpenCode-inspired composer: prompt first, controls in the same surface,
+   server-owned workspace context below. */
+.chat-composer {
+  width: min(100%, 940px);
+  gap: 8px;
+  padding: 10px clamp(16px, 4vw, 58px) 18px;
+  border-top: 0;
+  background: transparent;
+}
+
+.opencode-composer-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 11px 9px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 5px 18px color-mix(in srgb, var(--foreground) 5%, transparent);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.opencode-composer-surface:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent), 0 5px 18px color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+
+.opencode-composer-surface textarea {
+  width: 100%;
+  min-height: 78px;
+  padding: 6px 8px 11px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--foreground);
+  resize: vertical;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.opencode-composer-surface textarea::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.9;
+}
+
+.opencode-composer-surface textarea:focus-visible {
+  border: 0;
+  box-shadow: none;
+}
+
+.opencode-composer-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.opencode-composer-controls {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.opencode-composer-controls > [data-slot='button'] {
+  color: var(--muted-foreground);
+}
+
+.opencode-composer-controls > [data-slot='button']:hover:not(:disabled) {
+  color: var(--foreground);
+}
+
+.opencode-composer-select,
+.opencode-composer-readonly {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  height: 30px;
+  align-items: center;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.opencode-composer-select:hover {
+  color: var(--foreground);
+}
+
+.opencode-composer-select select {
+  max-width: 185px;
+  height: 30px;
+  padding: 0 24px 0 8px;
+  border: 0;
+  border-radius: 7px;
+  color: inherit;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  outline: none;
+}
+
+.opencode-composer-select select:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 22%, transparent);
+}
+
+.opencode-composer-select svg,
+.opencode-composer-readonly svg,
+.opencode-max-control svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.opencode-composer-select svg,
+.opencode-composer-readonly svg {
+  margin-left: -21px;
+}
+
+.opencode-composer-readonly {
+  max-width: 185px;
+  gap: 5px;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opencode-composer-readonly svg {
+  margin-left: 0;
+}
+
+.opencode-max-control {
+  flex: 0 0 auto;
+}
+
+.opencode-send-button {
+  flex: 0 0 auto;
+}
+
+.opencode-composer-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 6px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.opencode-context-project,
+.opencode-context-branch {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.opencode-context-project svg:first-child {
+  color: var(--primary);
+}
+
+.opencode-context-project svg,
+.opencode-context-branch svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+
+.opencode-context-project svg:last-child {
+  color: var(--muted-foreground);
+}
+
+.opencode-context-divider {
+  color: var(--border-strong, var(--muted-foreground));
+}
+
+.opencode-context-branch {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opencode-context-policy {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .opencode-composer-toolbar {
+    align-items: flex-end;
+  }
+
+  .opencode-composer-controls {
+    flex-wrap: wrap;
+  }
+
+  .opencode-composer-context {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .opencode-composer-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .opencode-composer-controls {
+    width: 100%;
+  }
+
+  .opencode-composer-toolbar > [data-slot='button'] {
+    align-self: flex-end;
+  }
+
+  .opencode-composer-select select,
+  .opencode-composer-readonly {
+    max-width: 140px;
+  }
+}

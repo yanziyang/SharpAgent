@@ -53,6 +53,7 @@ public sealed class SessionEventSseTests : IDisposable
         Assert.Equal("2", runStarted["id"]);
         Assert.Equal("run_started", runStarted["event"]);
         Assert.Contains("runId", runStarted["data"], StringComparison.Ordinal);
+        Assert.Contains("\"instruction\":\"stream this\"", runStarted["data"], StringComparison.Ordinal);
     }
 
     [Fact]

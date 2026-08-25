@@ -17,9 +17,9 @@ function renderRoute(path: string): void {
 describe('application routes', () => {
   it.each([
     ['/statistics', 'Statistics'],
-    ['/sessions/new', 'New session'],
+    ['/sessions/new', 'Conversation'],
     ['/sessions/archive', 'Archived sessions'],
-    ['/sessions/ses_123', 'Session workspace'],
+    ['/sessions/ses_123', 'Chat'],
     ['/sessions/ses_123/changes', 'Changes'],
     ['/settings/workspaces', 'Workspace settings'],
     ['/settings/models', 'Model profiles'],
